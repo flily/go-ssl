@@ -7,10 +7,9 @@ import (
 
 	"github.com/flily/go-ssl/app/digest"
 	"github.com/flily/go-ssl/cmd/gossl/commands/version"
-	"github.com/flily/go-ssl/common/clicontext"
 )
 
-type Entry func(ctx *clicontext.Context, args []string) error
+type Entry func(args []string) error
 
 var commands map[string]Entry
 
@@ -22,7 +21,7 @@ func init() {
 	}
 }
 
-func showHelp(_ *clicontext.Context, _ []string) error {
+func showHelp(_ []string) error {
 	help()
 	return nil
 }
@@ -43,9 +42,6 @@ func main() {
 		return
 	}
 
-	ctx := clicontext.New("gossl")
-	ctx.Set.String("in", "", "input file, default or '-' is stdin")
-	ctx.Set.String("out", "", "output file, default or '-' is stdout")
 	command := rawArgs[0]
 	args := rawArgs[1:]
 
@@ -56,7 +52,7 @@ func main() {
 		return
 	}
 
-	err := entry(ctx, args)
+	err := entry(args)
 	if err != nil {
 		fmt.Printf("gossl:Error: %s\n", err)
 	}

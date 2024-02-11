@@ -2,15 +2,14 @@ package digest
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
-
-	"github.com/flily/go-ssl/common/clicontext"
 )
 
-func hashFile(ctx *clicontext.Context, name string, filename string) error {
+func hashFile(name string, filename string) error {
 	var fd *os.File
 	var err error
 	if filename == "-" {
@@ -62,15 +61,16 @@ func algoHandler(array *[]string, name string) func(string) error {
 	}
 }
 
-func Main(ctx *clicontext.Context, args []string) error {
+func Main(args []string) error {
+	set := flag.NewFlagSet("digest", flag.ExitOnError)
 	algorithms := make([]string, 0, len(algorithmMap))
 
 	for name := range algorithmMap {
-		ctx.Set.BoolFunc(name, fmt.Sprintf("use %s algorithm", name),
+		set.BoolFunc(name, fmt.Sprintf("use %s algorithm", name),
 			algoHandler(&algorithms, name))
 	}
 
-	err := ctx.Set.Parse(args)
+	err := set.Parse(args)
 	if err != nil {
 		return err
 	}
@@ -85,11 +85,11 @@ func Main(ctx *clicontext.Context, args []string) error {
 		hashAlgo = algorithms[0]
 	}
 
-	if ctx.Set.NArg() <= 0 {
-		return hashFile(ctx, hashAlgo, "-")
+	if set.NArg() <= 0 {
+		return hashFile(hashAlgo, "-")
 	} else {
-		for _, filename := range ctx.Set.Args() {
-			err = hashFile(ctx, hashAlgo, filename)
+		for _, filename := range set.Args() {
+			err = hashFile(hashAlgo, filename)
 			if err != nil {
 				return err
 			}
