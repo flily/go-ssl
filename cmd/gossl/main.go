@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/flily/go-ssl/app/digest"
+	"github.com/flily/go-ssl/app/keygen"
 	"github.com/flily/go-ssl/cmd/gossl/commands/version"
 )
 
@@ -17,6 +18,7 @@ func init() {
 	commands = map[string]Entry{
 		"version": version.MainVersion,
 		"digest":  digest.Main,
+		"genrsa":  keygen.MainGenRSA,
 		"help":    showHelp,
 	}
 }
