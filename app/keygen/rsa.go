@@ -14,15 +14,6 @@ type GenerateRSAKeyConfigure struct {
 	Bits   int
 }
 
-func DefaultGenerateRSAKeyConfigure() *GenerateRSAKeyConfigure {
-	c := &GenerateRSAKeyConfigure{
-		Random: rand.Reader,
-		Bits:   2048,
-	}
-
-	return c
-}
-
 func GenerateRSAKey(conf *GenerateRSAKeyConfigure) {
 	privateKey, err := cipher.GenerateRSAKey(conf.Random, conf.Bits)
 	if err != nil {
@@ -35,13 +26,18 @@ func GenerateRSAKey(conf *GenerateRSAKeyConfigure) {
 
 func MainGenRSA(args []string) error {
 	set := flag.NewFlagSet("genrsa", flag.ExitOnError)
-
+	bits := set.Int("bits", 2048, "Size of the key")
 	err := set.Parse(args)
+
 	if err != nil {
 		return err
 	}
 
-	conf := DefaultGenerateRSAKeyConfigure()
+	conf := &GenerateRSAKeyConfigure{
+		Random: rand.Reader,
+		Bits:   *bits,
+	}
+
 	GenerateRSAKey(conf)
 
 	return nil

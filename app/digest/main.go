@@ -5,20 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strings"
+
+	"github.com/flily/go-ssl/common/cliutils"
 )
 
 func hashFile(name string, filename string) error {
-	var fd *os.File
-	var err error
-	if filename == "-" {
-		fd = os.Stdin
-	} else {
-		fd, err = os.Open(filename)
-		if err != nil {
-			return err
-		}
+	fd, err := cliutils.CLIReadFile(filename)
+	if err != nil {
+		return err
 	}
 
 	defer fd.Close()
@@ -85,14 +80,11 @@ func Main(args []string) error {
 		hashAlgo = algorithms[0]
 	}
 
-	if set.NArg() <= 0 {
-		return hashFile(hashAlgo, "-")
-	} else {
-		for _, filename := range set.Args() {
-			err = hashFile(hashAlgo, filename)
-			if err != nil {
-				return err
-			}
+	fileList := cliutils.CLIFileList(set.Args())
+	for _, filename := range fileList {
+		err = hashFile(hashAlgo, filename)
+		if err != nil {
+			fmt.Printf("Read error in %s: %s\n", filename, err)
 		}
 	}
 
