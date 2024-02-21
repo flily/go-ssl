@@ -7,6 +7,7 @@ import (
 
 	"github.com/flily/go-ssl/app/digest"
 	"github.com/flily/go-ssl/app/keygen"
+	"github.com/flily/go-ssl/app/utils/format"
 	"github.com/flily/go-ssl/cmd/gossl/commands/version"
 )
 
@@ -19,6 +20,7 @@ func init() {
 		"version": version.MainVersion,
 		"digest":  digest.Main,
 		"genrsa":  keygen.MainGenRSA,
+		"format":  format.MainFormat,
 		"help":    showHelp,
 	}
 }
