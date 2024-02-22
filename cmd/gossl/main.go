@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/flily/go-ssl/app/cipher"
 	"github.com/flily/go-ssl/app/digest"
 	"github.com/flily/go-ssl/app/keygen"
 	"github.com/flily/go-ssl/app/utils/format"
@@ -20,6 +21,7 @@ func init() {
 		"version": version.MainVersion,
 		"digest":  digest.Main,
 		"genrsa":  keygen.MainGenRSA,
+		"rsa":     cipher.MainRSA,
 		"format":  format.MainFormat,
 		"help":    showHelp,
 	}

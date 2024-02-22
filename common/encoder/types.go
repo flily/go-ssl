@@ -36,10 +36,8 @@ func (f KeyFileFormat) String() string {
 		return "PKCS7Message"
 	case KeyFileFormatPKCS8PrivateKey:
 		return "PrivateKey[PKCS8]"
-	case KeyFileFormatPKIXPrivateKey:
-		return "PKIXPrivateKey"
 	case KeyFileFormatPKIXPublicKey:
-		return "PKIXPublicKey"
+		return "PublicKey[PKIX]"
 	case KeyFileFormatECPrivateKey:
 		return "ECPrivateKey"
 	case KeyFileFormatECPublicKey:
@@ -77,10 +75,10 @@ func TypeDetect(data []byte, outTypes ...KeyFileFormat) []KeyFileFormat {
 		outTypes = append(outTypes, KeyFileFormatPKCS8PrivateKey)
 
 	} else if canParseKey(data, x509.ParsePKIXPublicKey) {
-		outTypes = append(outTypes, KeyFileFormatPKIXPrivateKey)
+		outTypes = append(outTypes, KeyFileFormatPKIXPublicKey)
 
 	} else if canParseKey(data, x509.ParseECPrivateKey) {
-		outTypes = append(outTypes, KeyFileFormatPKIXPrivateKey)
+		outTypes = append(outTypes, KeyFileFormatECPrivateKey)
 
 	} else if canParseKey(data, x509.ParseCertificate) {
 		outTypes = append(outTypes, KeyFileFormatCertificate)

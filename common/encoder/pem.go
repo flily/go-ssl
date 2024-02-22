@@ -21,3 +21,12 @@ func PEMDecode(data []byte) ([]byte, []byte) {
 
 	return block.Bytes, rest
 }
+
+func PEMTryDecode(data []byte) ([]byte, []byte) {
+	block, rest := pem.Decode(data)
+	if block == nil {
+		return data, nil
+	}
+
+	return block.Bytes, rest
+}
