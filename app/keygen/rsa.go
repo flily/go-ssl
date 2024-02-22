@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/flily/go-ssl/common/clicontext"
 	"github.com/flily/go-ssl/modules/cipher"
 )
 
@@ -24,11 +25,10 @@ func GenerateRSAKey(conf *GenerateRSAKeyConfigure) {
 	// fmt.Printf("%s\n", string(privateKey.PKCS1PrivateKey()))
 }
 
-func MainGenRSA(args []string) error {
+func MainGenRSA(ctx *clicontext.CommandContext) error {
 	set := flag.NewFlagSet("genrsa", flag.ExitOnError)
 	bits := set.Int("bits", 2048, "Size of the key")
-	err := set.Parse(args)
-
+	err := ctx.Parse(set)
 	if err != nil {
 		return err
 	}

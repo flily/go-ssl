@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/flily/go-ssl/common/clicontext"
 	"github.com/flily/go-ssl/common/cliutils"
 )
 
@@ -56,7 +57,7 @@ func algoHandler(array *[]string, name string) func(string) error {
 	}
 }
 
-func Main(args []string) error {
+func Main(ctx *clicontext.CommandContext) error {
 	set := flag.NewFlagSet("digest", flag.ExitOnError)
 	algorithms := make([]string, 0, len(algorithmMap))
 
@@ -65,7 +66,7 @@ func Main(args []string) error {
 			algoHandler(&algorithms, name))
 	}
 
-	err := set.Parse(args)
+	err := ctx.Parse(set)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/flily/go-ssl/common/clicontext"
 	"github.com/flily/go-ssl/common/encoder"
 )
 
@@ -23,11 +24,11 @@ func showRSAPublicKey(publicKey *rsa.PublicKey) {
 	fmt.Printf("N: [%d] %x\n", len(n), n)
 }
 
-func rsaCommandShow(args []string) error {
+func rsaCommandShow(ctx *clicontext.CommandContext) error {
 	set := flag.NewFlagSet("rsa show", flag.ExitOnError)
 	inFile := set.String("in", "-", "Input file")
 	showPublic := set.Bool("public", false, "Show public key")
-	_ = set.Parse(args)
+	_ = ctx.Parse(set)
 
 	privateKey, publicKey, err := encoder.ReadRSAKey(*inFile)
 	if err != nil {
@@ -52,25 +53,10 @@ func rsaCommandShow(args []string) error {
 	return nil
 }
 
-var rsaCommands = map[string]func([]string) error{
+var rsaCommands = map[string]clicontext.CommandEntryFunc{
 	"show": rsaCommandShow,
 }
 
-func MainRSA(args []string) error {
-	set := flag.NewFlagSet("rsa", flag.ExitOnError)
-	_ = set.Parse(args)
-
-	nextArgs := set.Args()
-	cmd := "show"
-	if len(args) > 0 {
-		cmd = nextArgs[0]
-		nextArgs = nextArgs[1:]
-	}
-
-	fn, found := rsaCommands[cmd]
-	if !found {
-		return fmt.Errorf("Invalid command: %s", cmd)
-	}
-
-	return fn(nextArgs)
+func MainRSA(ctx *clicontext.CommandContext) error {
+	return ctx.Invoke(rsaCommands)
 }

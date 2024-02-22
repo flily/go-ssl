@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/flily/go-ssl/common/clicontext"
 	"github.com/flily/go-ssl/common/encoder"
 )
 
@@ -27,9 +28,9 @@ func detectFileType(filename string) error {
 	return nil
 }
 
-func MainFormat(args []string) error {
+func MainFormat(ctx *clicontext.CommandContext) error {
 	set := flag.NewFlagSet("format", flag.ExitOnError)
-	set.Parse(args)
+	_ = ctx.Parse(set)
 
 	for _, filename := range set.Args() {
 		err := detectFileType(filename)

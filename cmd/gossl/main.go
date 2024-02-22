@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -10,14 +9,15 @@ import (
 	"github.com/flily/go-ssl/app/keygen"
 	"github.com/flily/go-ssl/app/utils/format"
 	"github.com/flily/go-ssl/cmd/gossl/commands/version"
+	"github.com/flily/go-ssl/common/clicontext"
 )
 
 type Entry func(args []string) error
 
-var commands map[string]Entry
+var commands map[string]clicontext.CommandEntryFunc
 
 func init() {
-	commands = map[string]Entry{
+	commands = map[string]clicontext.CommandEntryFunc{
 		"version": version.MainVersion,
 		"digest":  digest.Main,
 		"genrsa":  keygen.MainGenRSA,
@@ -27,7 +27,7 @@ func init() {
 	}
 }
 
-func showHelp(_ []string) error {
+func showHelp(ctx *clicontext.CommandContext) error {
 	help()
 	return nil
 }
@@ -41,25 +41,9 @@ func help() {
 }
 
 func main() {
-	flag.Parse()
-	rawArgs := flag.Args()
-	if len(rawArgs) <= 0 {
-		help()
-		return
-	}
-
-	command := rawArgs[0]
-	args := rawArgs[1:]
-
-	entry, found := commands[command]
-	if !found {
-		fmt.Printf("gossl:Error: '%s' is an invalid command.\n", command)
-		help()
-		return
-	}
-
-	err := entry(args)
+	ctx := clicontext.NewCommandContext(os.Args)
+	err := ctx.Invoke(commands)
 	if err != nil {
-		fmt.Printf("gossl:Error: %s\n", err)
+		fmt.Printf("gossl error: %s\n", err)
 	}
 }
