@@ -7,14 +7,15 @@ import (
 
 	"github.com/flily/go-ssl/common/clicontext"
 	"github.com/flily/go-ssl/common/encoder"
+	"github.com/flily/go-ssl/common/prettyprint"
 )
 
 func showRSAPrivateKey(privateKey *rsa.PrivateKey) {
 	d := privateKey.D.Bytes()
 	n := privateKey.N.Bytes()
-	fmt.Printf("E: %x\n", privateKey.E)
-	fmt.Printf("D: [%d] %x\n", len(d), d)
-	fmt.Printf("N: [%d] %x\n", len(n), n)
+	fmt.Printf("E (public exponent): %d\n", privateKey.E)
+	prettyprint.PPrintBinary("N (modulus)", n)
+	prettyprint.PPrintBinary("D (private exponent)", d)
 }
 
 func showRSAPublicKey(publicKey *rsa.PublicKey) {
