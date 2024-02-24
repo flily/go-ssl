@@ -18,12 +18,13 @@ var commands map[string]clicontext.CommandEntryFunc
 
 func init() {
 	commands = map[string]clicontext.CommandEntryFunc{
-		"version": version.MainVersion,
-		"digest":  digest.Main,
-		"genrsa":  keygen.MainGenRSA,
-		"rsa":     cipher.MainRSA,
-		"format":  format.MainFormat,
-		"help":    showHelp,
+		"version":  version.MainVersion,
+		"digest":   digest.Main,
+		"genrsa":   keygen.MainGenRSA,
+		"rsa":      cipher.MainRSA,
+		"genecdsa": keygen.MainGenEC,
+		"format":   format.MainFormat,
+		"help":     showHelp,
 	}
 }
 

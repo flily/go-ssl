@@ -25,6 +25,14 @@ func GenerateRSAKey(random io.Reader, bits int) (*RSAPrivateKey, error) {
 	return k, nil
 }
 
+func (k *RSAPrivateKey) DER() []byte {
+	return k.PKCS8PrivateKey()
+}
+
+func (k *RSAPrivateKey) PEM() []byte {
+	return k.PKCS8PrivateKeyPEM()
+}
+
 func (k *RSAPrivateKey) PKCS1PrivateKey() []byte {
 	return x509.MarshalPKCS1PrivateKey(&k.PrivateKey)
 }
