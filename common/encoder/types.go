@@ -56,33 +56,49 @@ func canParseKey[T any](data []byte, loader func([]byte) (T, error)) bool {
 	return err == nil
 }
 
-func TypeDetect(data []byte, outTypes ...KeyFileFormat) []KeyFileFormat {
-	block, _ := pem.Decode(data)
-	if block != nil {
-		return TypeDetect(block.Bytes, append(outTypes, KeyFileFormatPEM)...)
-	}
-
+func derDetect(data []byte) KeyFileFormat {
+	result := KeyFileFormatInvalid
 	if canParseKey(data, x509.ParsePKCS1PrivateKey) {
-		outTypes = append(outTypes, KeyFileFormatPKCS1RSAPrivateKey)
+		result = KeyFileFormatPKCS1RSAPrivateKey
 
 	} else if canParseKey(data, x509.ParsePKCS1PublicKey) {
-		outTypes = append(outTypes, KeyFileFormatPKCS1RSAPublicKey)
+		result = KeyFileFormatPKCS1RSAPublicKey
 
 	} else if canParseKey(data, pkcs7.Parse) {
-		outTypes = append(outTypes, KeyFileFormatPKCS7Message)
+		result = KeyFileFormatPKCS7Message
 
 	} else if canParseKey(data, x509.ParsePKCS8PrivateKey) {
-		outTypes = append(outTypes, KeyFileFormatPKCS8PrivateKey)
+		result = KeyFileFormatPKCS8PrivateKey
 
 	} else if canParseKey(data, x509.ParsePKIXPublicKey) {
-		outTypes = append(outTypes, KeyFileFormatPKIXPublicKey)
+		result = KeyFileFormatPKIXPublicKey
 
 	} else if canParseKey(data, x509.ParseECPrivateKey) {
-		outTypes = append(outTypes, KeyFileFormatECPrivateKey)
+		result = KeyFileFormatECPrivateKey
 
 	} else if canParseKey(data, x509.ParseCertificate) {
-		outTypes = append(outTypes, KeyFileFormatCertificate)
+		result = KeyFileFormatCertificate
+	}
 
+	return result
+}
+
+func TypeDetect(data []byte) []KeyFileFormat {
+	outTypes := make([]KeyFileFormat, 0)
+	block, rest := pem.Decode(data)
+	if block != nil {
+		keyType := derDetect(block.Bytes)
+		outTypes = append(outTypes,
+			KeyFileFormatPEM,
+			keyType,
+		)
+
+		if len(rest) > 0 {
+			outTypes = append(outTypes, TypeDetect(rest)...)
+		}
+
+	} else {
+		outTypes = append(outTypes, derDetect(data))
 	}
 
 	return outTypes

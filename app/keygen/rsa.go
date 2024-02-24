@@ -22,7 +22,6 @@ func GenerateRSAKey(conf *GenerateRSAKeyConfigure) {
 	}
 
 	fmt.Printf("%s", string(privateKey.PKCS8PrivateKeyPEM()))
-	// fmt.Printf("%s\n", string(privateKey.PKCS1PrivateKey()))
 }
 
 func MainGenRSA(ctx *clicontext.CommandContext) error {
