@@ -8,10 +8,15 @@ import (
 	"go.mozilla.org/pkcs7"
 )
 
-type KeyFileFormat int
+type KeyFileFormatKind int
+
+type KeyFileFormat struct {
+	Kind KeyFileFormatKind
+	Text string
+}
 
 const (
-	KeyFileFormatInvalid KeyFileFormat = iota
+	KeyFileFormatInvalid KeyFileFormatKind = iota
 	KeyFileFormatPKCS1RSAPrivateKey
 	KeyFileFormatPKCS1RSAPublicKey
 	KeyFileFormatPKCS7Message
@@ -24,8 +29,22 @@ const (
 	KeyFileFormatPEM
 )
 
+func (k KeyFileFormatKind) New() KeyFileFormat {
+	return KeyFileFormat{
+		Kind: k,
+		Text: "",
+	}
+}
+
+func (k KeyFileFormatKind) WithText(t string) KeyFileFormat {
+	return KeyFileFormat{
+		Kind: k,
+		Text: t,
+	}
+}
+
 func (f KeyFileFormat) String() string {
-	switch f {
+	switch f.Kind {
 	case KeyFileFormatInvalid:
 		return "Invalid"
 	case KeyFileFormatPKCS1RSAPrivateKey:
@@ -45,9 +64,9 @@ func (f KeyFileFormat) String() string {
 	case KeyFileFormatCertificate:
 		return "Certificate"
 	case KeyFileFormatPEM:
-		return "PEM"
+		return fmt.Sprintf("PEM[%s]", f.Text)
 	default:
-		return fmt.Sprintf("KeyFileFormat(%d)", f)
+		return fmt.Sprintf("KeyFileFormat(%d)", f.Kind)
 	}
 }
 
@@ -80,7 +99,7 @@ func derDetect(data []byte) KeyFileFormat {
 		result = KeyFileFormatCertificate
 	}
 
-	return result
+	return result.New()
 }
 
 func TypeDetect(data []byte) []KeyFileFormat {
@@ -89,7 +108,7 @@ func TypeDetect(data []byte) []KeyFileFormat {
 	if block != nil {
 		keyType := derDetect(block.Bytes)
 		outTypes = append(outTypes,
-			KeyFileFormatPEM,
+			KeyFileFormatPEM.WithText(block.Type),
 			keyType,
 		)
 

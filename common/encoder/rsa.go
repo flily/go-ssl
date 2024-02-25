@@ -14,9 +14,8 @@ func ReadRSAKey(filename string) (*rsa.PrivateKey, *rsa.PublicKey, error) {
 		return nil, nil, err
 	}
 
-	defer fd.Close()
-
 	content, err := io.ReadAll(fd)
+	_ = fd.Close()
 	if err != nil {
 		return nil, nil, err
 	}
