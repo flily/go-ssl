@@ -23,11 +23,11 @@ d2FTNrzVEw/RgXfv
 -----END PRIVATE KEY-----`)
 
 	types := TypeDetect(data)
-	if types[0] != KeyFileFormatPEM.WithText("PRIVATE KEY") {
+	if types[0] != KeyFileFormatPEM {
 		t.Errorf("Expected PEM, got %s", types[0].String())
 	}
 
-	if types[1] != KeyFileFormatPKCS8PrivateKey.New() {
+	if types[1] != KeyFileFormatPKCS8PrivateKey {
 		t.Errorf("Expected PKCS8PrivateKey, got %s", types[1].String())
 	}
 }
