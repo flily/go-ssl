@@ -114,7 +114,7 @@ func NewDERContainer(data []byte) *Container {
 }
 
 func ParseContainerChain(data []byte) *Container {
-	block, _ := pem.Decode(data)
+	block, rest := pem.Decode(data)
 	if block == nil {
 		// DER format
 		return NewDERContainer(data)
@@ -133,6 +133,10 @@ func ParseContainerChain(data []byte) *Container {
 		if err != nil {
 			return nil
 		}
+	}
+
+	if len(rest) > 0 {
+		c.next = ParseContainerChain(rest)
 	}
 
 	return c
@@ -162,7 +166,7 @@ func (c *Container) parseDERFormat(data []byte) error {
 	for _, parser := range tryParsers {
 		key, err := parser.parser(data)
 		if err == nil {
-			c.setKeyWithFormat(key, parser.kind)
+			_ = c.setKeyWithFormat(key, parser.kind)
 			found = true
 			break
 		}
@@ -220,4 +224,8 @@ func (c *Container) KeyType() string {
 	} else {
 		return fmt.Sprintf("DER[%s %s]", c.format, c.keyType)
 	}
+}
+
+func (c *Container) Next() *Container {
+	return c.next
 }

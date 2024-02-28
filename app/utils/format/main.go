@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/flily/go-ssl/common/clicontext"
 	"github.com/flily/go-ssl/common/encoder"
@@ -23,8 +24,19 @@ func detectFileType(filename string) error {
 		return err
 	}
 
-	typeList := encoder.TypeDetect(content)
-	fmt.Printf("%s: %v\n", filename, typeList)
+	container := encoder.ParseContainerChain(content)
+	if container == nil {
+		fmt.Printf("%s NIL\n", filename)
+		return nil
+	}
+
+	typeChain := make([]string, 0, 10)
+	c := container
+	for c != nil {
+		typeChain = append(typeChain, c.KeyType())
+		c = c.Next()
+	}
+	fmt.Printf("%s: %s\n", filename, strings.Join(typeChain, " -> "))
 	return nil
 }
 
