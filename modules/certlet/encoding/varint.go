@@ -1,4 +1,4 @@
-package certlet
+package encoding
 
 func EncodeVarUint(value uint64, buffer []byte, offset int) int {
 	i := 0

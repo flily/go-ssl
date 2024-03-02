@@ -1,9 +1,10 @@
-package certlet
+package encoding
 
 import (
+	"testing"
+
 	"bytes"
 	"encoding/binary"
-	"testing"
 )
 
 func TestEncodeVarUint(t *testing.T) {
