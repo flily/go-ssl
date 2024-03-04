@@ -25,6 +25,10 @@ func TestEncodeVarUint(t *testing.T) {
 			t.Errorf("EncodeVarUint(%d) -> %v, expected %v", caseValue, buffer[:size], exp[:expSize])
 		}
 
+		if expSize != EncodeVarUintSize(caseValue) {
+			t.Errorf("EncodeVarUintSize(%d) -> %v, expected %v", caseValue, expSize, EncodeVarUintSize(caseValue))
+		}
+
 		value, length := DecodeVarUint(exp, 0)
 		if value != caseValue {
 			t.Errorf("DecodeVarUint(%v) -> %d, expected %d", buffer, value, caseValue)
@@ -56,6 +60,10 @@ func TestEncodeVarInt(t *testing.T) {
 		expSize := binary.PutVarint(exp, c)
 		if !bytes.Equal(buffer[:size], exp[:expSize]) {
 			t.Errorf("EncodeVarInt(%d) -> %v, expected %v", c, buffer[:size], exp[:expSize])
+		}
+
+		if expSize != EncodeVarIntSize(c) {
+			t.Errorf("EncodeVarIntSize(%d) -> %v, expected %v", c, expSize, EncodeVarIntSize(c))
 		}
 
 		value, length := DecodeVarInt(buffer, 0)

@@ -1,5 +1,19 @@
 package encoding
 
+func EncodeVarUintSize(value uint64) int {
+	i := 0
+	for value > 0 {
+		value >>= 7
+		i += 1
+	}
+
+	if i == 0 {
+		i += 1
+	}
+
+	return i
+}
+
 func EncodeVarUint(value uint64, buffer []byte, offset int) int {
 	i := 0
 	for value > 0 {
@@ -38,6 +52,14 @@ func DecodeVarUint(buffer []byte, offset int) (uint64, int) {
 	}
 
 	return value, offset
+}
+
+func EncodeVarIntSize(value int64) int {
+	if value < 0 {
+		return EncodeVarUintSize((uint64(-value) - 1) << 1)
+	}
+
+	return EncodeVarUintSize(uint64(value) << 1)
 }
 
 func EncodeVarInt(value int64, buffer []byte, offset int) int {
