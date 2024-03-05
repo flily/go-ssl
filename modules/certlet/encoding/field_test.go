@@ -44,6 +44,15 @@ func TestEncodeStringField(t *testing.T) {
 	if f.Int() != 0 {
 		t.Errorf("f.Int() -> %v, expected %v", f.Int(), 0)
 	}
+
+	d, next := ParseField(b, 0)
+	if next != size {
+		t.Errorf("ParseField(b, 0) size %v, expected %v", next, size)
+	}
+
+	if d.String() != v {
+		t.Errorf("d.String() -> %v, expected %v", d.String(), v)
+	}
 }
 
 func TestEncodeNamedStringField(t *testing.T) {

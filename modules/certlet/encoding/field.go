@@ -68,10 +68,32 @@ const (
 	MemoryTypeBlob
 )
 
+type WireID uint64
+
+func (i WireID) FieldID() uint64 {
+	return uint64(i) >> 4
+}
+
+func (i WireID) WireType() WireType {
+	return WireType(uint64(i) & 0x03)
+}
+
+func (i WireID) Repeated() bool {
+	return (uint64(i) & WireRepeatedFlag) != 0
+}
+
+func (i WireID) HasName() bool {
+	return (uint64(i) & WireHasNameFlag) != 0
+}
+
+func (i WireID) AsUint() uint64 {
+	return uint64(i)
+}
+
 type Field struct {
 	wType      WireType
 	mType      MemoryType
-	id         uint64
+	fieldID    uint64
 	name       string
 	Repeated   bool
 	HasName    bool
@@ -84,11 +106,11 @@ type Field struct {
 	valueBlob  []byte
 }
 
-func NewFixedLengthField(id uint64, value any) *Field {
+func NewFixedLengthField(fieldID uint64, value any) *Field {
 	f := &Field{
-		id:    id,
-		name:  "",
-		wType: WireTypeFixedLength,
+		fieldID: fieldID,
+		name:    "",
+		wType:   WireTypeFixedLength,
 	}
 
 	if err := f.setFixedLengthValue(value); err != nil {
@@ -98,11 +120,11 @@ func NewFixedLengthField(id uint64, value any) *Field {
 	return f
 }
 
-func NewBlob(id uint64, value any) *Field {
+func NewBlob(fieldID uint64, value any) *Field {
 	f := &Field{
-		id:    id,
-		name:  "",
-		wType: WireTypeBlob,
+		fieldID: fieldID,
+		name:    "",
+		wType:   WireTypeBlob,
 	}
 
 	if err := f.setBlobValue(value); err != nil {
@@ -112,13 +134,23 @@ func NewBlob(id uint64, value any) *Field {
 	return f
 }
 
-func NewField(id uint64, value any) *Field {
+func NewField(fieldID uint64, value any) *Field {
 	f := &Field{
-		id:   id,
-		name: "",
+		fieldID: fieldID,
+		name:    "",
 	}
 
 	return f
+}
+
+func ParseField(buffer []byte, offset int) (*Field, int) {
+	f := &Field{}
+	next := f.ReadFrom(buffer, offset)
+	if next < 0 {
+		return nil, -1
+	}
+
+	return f, next
 }
 
 func (f *Field) setFixedLengthValue(value any) error {
@@ -181,11 +213,11 @@ func (f *Field) WithName(name string) *Field {
 	return f
 }
 
-func (f *Field) ID() uint64 {
-	return f.id
+func (f *Field) FieldID() uint64 {
+	return f.fieldID
 }
 
-func (f *Field) WireID() uint64 {
+func (f *Field) WireID() WireID {
 	wid := uint64(f.wType)
 	if f.Repeated {
 		wid |= WireRepeatedFlag
@@ -195,7 +227,7 @@ func (f *Field) WireID() uint64 {
 		wid |= WireHasNameFlag
 	}
 
-	return wid | (f.id << 4)
+	return WireID(wid | (f.fieldID << 4))
 }
 
 func (f *Field) Name() string {
@@ -287,7 +319,7 @@ func (f *Field) writeBlob(encoder *Encoder) int {
 func (f *Field) WriteTo(buffer []byte, offset int) int {
 	encoder := NewEncoder(buffer, offset)
 	wireID := f.WireID()
-	if encoder.EncodeUint(wireID) < 0 {
+	if encoder.EncodeVarUint(wireID.AsUint()) < 0 {
 		return -1
 	}
 
@@ -309,6 +341,34 @@ func (f *Field) WriteTo(buffer []byte, offset int) int {
 	return result
 }
 
+func (f *Field) readBlob(decoder *Decoder) int {
+	data, next := decoder.DecodeBinary()
+	if next < 0 {
+		return -1
+	}
+
+	f.valueBlob = data
+	f.mType = MemoryTypeBlob
+	return next
+}
+
 func (f *Field) ReadFrom(buffer []byte, offset int) int {
-	return offset
+	decoder := NewDecoder(buffer, offset)
+
+	wireID, next := decoder.DecodeWireID()
+	if next < 0 {
+		return -1
+	}
+
+	f.fieldID = wireID.FieldID()
+	f.wType = wireID.WireType()
+	f.Repeated = wireID.Repeated()
+
+	var result int
+	switch wireID.WireType() {
+	case WireTypeBlob:
+		result = f.readBlob(decoder)
+	}
+
+	return result
 }

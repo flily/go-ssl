@@ -1,6 +1,8 @@
 package encoding
 
-import "math"
+import (
+	"math"
+)
 
 type Encoder struct {
 	buffer []byte
@@ -20,7 +22,7 @@ func (e *Encoder) CheckBufferSize(size int) bool {
 	return e.offset+size <= len(e.buffer)
 }
 
-func (e *Encoder) EncodeUint(value uint64) int {
+func (e *Encoder) EncodeVarUint(value uint64) int {
 	size := EncodeVarUintSize(value)
 	if !e.CheckBufferSize(size) {
 		return -1
@@ -31,7 +33,7 @@ func (e *Encoder) EncodeUint(value uint64) int {
 	return next
 }
 
-func (e *Encoder) EncodeInt(value int64) int {
+func (e *Encoder) EncodeVarInt(value int64) int {
 	size := EncodeVarIntSize(value)
 	if !e.CheckBufferSize(size) {
 		return -1
@@ -72,7 +74,7 @@ func (e *Encoder) EncodeBinary(value []byte) int {
 		return -1
 	}
 
-	next := e.EncodeUint(uint64(dataSize))
+	next := e.EncodeVarUint(uint64(dataSize))
 	copy(e.buffer[next:], value)
 	e.offset = next + dataSize
 	return e.offset
