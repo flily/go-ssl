@@ -15,20 +15,13 @@ func EncodeVarUintSize(value uint64) int {
 }
 
 func EncodeVarUint(value uint64, buffer []byte, offset int) int {
-	i := 0
+	buffer[offset] = uint8(value & 0x7f)
+	value >>= 7
+	i := 1
 	for value > 0 {
-		b := byte(value & 0x7f)
+		buffer[offset+i-1] |= 0x80
+		buffer[offset+i] = uint8(value & 0x7f)
 		value >>= 7
-		if value > 0 {
-			b |= 0x80
-		}
-
-		buffer[offset+i] = b
-		i += 1
-	}
-
-	if i == 0 {
-		buffer[offset] = 0
 		i += 1
 	}
 
@@ -40,7 +33,7 @@ func DecodeVarUint(buffer []byte, offset int) (uint64, int) {
 	var shift uint
 	var b byte
 
-	for {
+	for offset < len(buffer) {
 		b = buffer[offset]
 		offset += 1
 		value |= uint64(b&0x7f) << shift
@@ -81,4 +74,102 @@ func DecodeVarInt(buffer []byte, offset int) (int64, int) {
 	}
 
 	return -int64(value>>1) - 1, offset
+}
+
+func EncodeUnifiedVarUintSize(value uint64) int {
+	i := 1
+	value >>= 6
+	for value > 0 {
+		value >>= 7
+		i += 1
+	}
+
+	return i
+}
+
+func EncodeUnifiedVarUint(value uint64, buffer []byte, offset int) int {
+	if offset+EncodeUnifiedVarUintSize(value) > len(buffer) {
+		return offset
+	}
+
+	buffer[offset] = uint8(value&0x3f) << 1
+	value >>= 6
+
+	i := 1
+	for value > 0 {
+		buffer[offset+i-1] |= 0x80
+		buffer[offset+i] = uint8(value & 0x7f)
+		value >>= 7
+		i += 1
+	}
+
+	return offset + i
+}
+
+func DecodeUnifiedVarUint(buffer []byte, offset int) (uint64, int) {
+	b := buffer[offset]
+	value := uint64((b & 0x7e) >> 1)
+	i := 1
+	for offset+i < len(buffer) && b&0x80 != 0 {
+		b = buffer[offset+i]
+		value |= uint64(b&0x7f) << ((i-1)*7 + 6)
+		i += 1
+	}
+
+	return value, offset + i
+}
+
+func EncodeUnifiedVarIntSize(value int64) int {
+	i := 1
+	if value < 0 {
+		value = -value
+	}
+
+	value >>= 6
+	for value > 0 {
+		value >>= 7
+		i += 1
+	}
+
+	return i
+}
+
+func EncodeUnifiedVarInt(value int64, buffer []byte, offset int) int {
+	b := uint8(0)
+	if value < 0 {
+		b = 1
+		value = -value - 1
+	}
+
+	b |= uint8(value&0x3f) << 1
+	buffer[offset] = b
+	value >>= 6
+
+	i := 1
+	for value > 0 {
+		buffer[offset+i-1] |= 0x80
+		buffer[offset+i] = uint8(value & 0x7f)
+		value >>= 7
+		i += 1
+	}
+
+	return offset + i
+}
+
+func DecodeUnifiedVarInt(buffer []byte, offset int) (int64, int) {
+	b := buffer[offset]
+	sign := b & 1
+	value := int64((b & 0x7e) >> 1)
+	i := 1
+	for offset+i < len(buffer) && b&0x80 != 0 {
+		b = buffer[offset+i]
+		value |= int64(b&0x7f) << ((i-1)*7 + 6)
+		i += 1
+	}
+
+	if sign != 0 {
+		value = -value - 1
+	}
+
+	return value, offset + i
 }

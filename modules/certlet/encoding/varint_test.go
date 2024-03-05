@@ -76,3 +76,75 @@ func TestEncodeVarInt(t *testing.T) {
 		}
 	}
 }
+
+func TestEncodeUnifiedVarUint(t *testing.T) {
+	cases := []uint64{
+		0,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		100, 1000, 1000, 10000, 100000, 1000000, 10000000, 100000000,
+		0x7fffffff,
+	}
+
+	buffer := make([]byte, 10)
+	for _, c := range cases {
+		exp := make([]byte, 10)
+		offset := 0
+		size := EncodeUnifiedVarUint(c, buffer, offset)
+
+		expSize := binary.PutVarint(exp, int64(c))
+		if !bytes.Equal(buffer[:size], exp[:expSize]) {
+			t.Errorf("EncodeUnifiedVarUint(%d) -> %v, expected %v", c, buffer[:size], exp[:expSize])
+		}
+
+		if expSize != EncodeUnifiedVarUintSize(c) {
+			t.Errorf("EncodeUnifiedVarUintSize(%d) -> %v, expected %v",
+				c, expSize, EncodeUnifiedVarUintSize(c))
+		}
+
+		value, length := DecodeUnifiedVarUint(buffer, 0)
+		if value != c {
+			t.Errorf("DecodeUnifiedVarUint(%v) -> %d, expected %d", buffer, value, c)
+		}
+
+		if length != size {
+			t.Errorf("DecodeUnifiedVarUint(%v) shift %d, expected %d", buffer, length, size)
+		}
+	}
+}
+
+func TestEncodeUnifiedVarInt(t *testing.T) {
+	cases := []int64{
+		0,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		100, 1000, 1000, 10000, 100000, 1000000, 10000000, 100000000,
+		0x7fffffff,
+		-1, -2, -3, -4, -5, -6, -7, -8, -9, -10,
+		-100, -1000, -1000, -10000, -100000, -1000000, -10000000, -100000000,
+		-0x7fffffff,
+	}
+
+	for _, c := range cases {
+		buffer := make([]byte, 10)
+		exp := make([]byte, 10)
+		offset := 0
+		size := EncodeUnifiedVarInt(c, buffer, offset)
+
+		expSize := binary.PutVarint(exp, c)
+		if !bytes.Equal(buffer[:size], exp[:expSize]) {
+			t.Errorf("EncodeUnifiedVarInt(%d) -> %v, expected %v", c, buffer[:size], exp[:expSize])
+		}
+
+		if expSize != EncodeUnifiedVarIntSize(c) {
+			t.Errorf("EncodeUnifiedVarInt(%d) -> %v, expected %v", c, expSize, EncodeUnifiedVarIntSize(c))
+		}
+
+		value, length := DecodeUnifiedVarInt(buffer, 0)
+		if value != c {
+			t.Errorf("DecodeUnifiedVarInt(%v) -> %d, expected %d", buffer, value, c)
+		}
+
+		if length != size {
+			t.Errorf("DecodeUnifiedVarInt(%v) shift %d, expected %d", buffer, length, size)
+		}
+	}
+}

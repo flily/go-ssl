@@ -1,8 +1,9 @@
 package encoding
 
 import (
-	"bytes"
 	"testing"
+
+	"bytes"
 )
 
 func TestEncodeStringField(t *testing.T) {
@@ -44,14 +45,28 @@ func TestEncodeStringField(t *testing.T) {
 	if f.Int() != 0 {
 		t.Errorf("f.Int() -> %v, expected %v", f.Int(), 0)
 	}
+}
 
-	d, next := ParseField(b, 0)
-	if next != size {
-		t.Errorf("ParseField(b, 0) size %v, expected %v", next, size)
+func TestDecodeStringField(t *testing.T) {
+	v := "expecto patronum"
+	data := []byte{
+		0xa2, 0x05, // WireID
+		0x10, // Length
+		0x65, 0x78, 0x70, 0x65, 0x63, 0x74, 0x6f, 0x20,
+		0x70, 0x61, 0x74, 0x72, 0x6f, 0x6e, 0x75, 0x6d,
 	}
 
-	if d.String() != v {
-		t.Errorf("d.String() -> %v, expected %v", d.String(), v)
+	f, next := ParseField(data, 0)
+	if next != len(data) {
+		t.Errorf("ParseField(b, 0) size %v, expected %v", next, len(data))
+	}
+
+	if f.WireID().WireType() != WireTypeBlob {
+		t.Errorf("f.WireID().WireType() -> %v, expected %v", f.WireID().WireType(), WireTypeBlob)
+	}
+
+	if f.String() != v {
+		t.Errorf("f.String() -> %v, expected %v", f.String(), v)
 	}
 }
 
@@ -232,4 +247,7 @@ func TestEncodeInt32Field(t *testing.T) {
 	if f.Int() != int64(v) {
 		t.Errorf("f.Int() -> %v, expected %v", f.Int(), v)
 	}
+}
+
+func TestEncodeVarUintField(t *testing.T) {
 }

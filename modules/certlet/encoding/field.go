@@ -120,6 +120,30 @@ func NewFixedLengthField(fieldID uint64, value any) *Field {
 	return f
 }
 
+func NewVarint(fieldID uint64, value any) *Field {
+	f := &Field{
+		fieldID: fieldID,
+		name:    "",
+		wType:   WireTypeVariableLength,
+	}
+
+	refValue := reflect.ValueOf(value)
+	switch value.(type) {
+	case uint8, uint16, uint32, uint64:
+		f.valueUint = refValue.Uint()
+		f.mType = MemoryTypeUint
+
+	case int64:
+		f.valueInt = refValue.Int()
+		f.mType = MemoryTypeInt
+
+	default:
+		return nil
+	}
+
+	return f
+}
+
 func NewBlob(fieldID uint64, value any) *Field {
 	f := &Field{
 		fieldID: fieldID,
@@ -312,6 +336,18 @@ func (f *Field) writeFixedLength(encoder *Encoder) int {
 	return 0
 }
 
+func (f *Field) writeVarint(encoder *Encoder) int {
+	switch f.mType {
+	case MemoryTypeUint:
+		return encoder.EncodeVarUint(f.valueUint)
+
+	case MemoryTypeInt:
+		return encoder.EncodeVarInt(f.valueInt)
+	}
+
+	return 0
+}
+
 func (f *Field) writeBlob(encoder *Encoder) int {
 	return encoder.EncodeBinary(f.valueBlob)
 }
@@ -333,6 +369,9 @@ func (f *Field) WriteTo(buffer []byte, offset int) int {
 	switch f.wType {
 	case WireTypeFixedLength:
 		result = f.writeFixedLength(encoder)
+
+	case WireTypeVariableLength:
+		result = f.writeVarint(encoder)
 
 	case WireTypeBlob:
 		result = f.writeBlob(encoder)
