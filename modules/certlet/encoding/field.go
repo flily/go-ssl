@@ -158,6 +158,19 @@ func NewBlob(fieldID uint64, value any) *Field {
 	return f
 }
 
+func NewFieldEOF() *Field {
+	f := &Field{
+		fieldID:   0,
+		name:      "",
+		wType:     WireTypeFixedLength,
+		mType:     MemoryTypeUint,
+		kind:      FixedLengthTypeNull,
+		valueUint: 0,
+	}
+
+	return f
+}
+
 func NewField(fieldID uint64, value any) *Field {
 	f := &Field{
 		fieldID: fieldID,
