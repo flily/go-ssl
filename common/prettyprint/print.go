@@ -48,11 +48,14 @@ func PPrintBinary(name string, value []byte) {
 		return
 	}
 
+	length := len(value)
+	padded := ""
 	first := value[0]
 	if first > 0x80 {
 		value = append([]byte{0x00}, value...)
+		padded = " (padded)"
 	}
 
-	fmt.Printf("%s: [%d bytes]\n%s\n",
-		name, len(value), binaryHex(value, 15, "    "))
+	fmt.Printf("%s: [%d bytes%s]\n%s\n",
+		name, length, padded, binaryHex(value, 15, "    "))
 }
