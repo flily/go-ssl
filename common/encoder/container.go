@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"os"
 
 	"go.mozilla.org/pkcs7"
 )
@@ -103,17 +105,17 @@ func makeKeyParser[T any](loader func([]byte) (T, error)) func(data []byte) (any
 	}
 }
 
-func NewDERContainer(data []byte) *Container {
+func NewDERContainer(data []byte) (*Container, error) {
 	c := &Container{}
 	err := c.parseDERFormat(data)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return c
+	return c, nil
 }
 
-func ParseContainerChain(data []byte) *Container {
+func ParseContainerChain(data []byte) (*Container, error) {
 	block, rest := pem.Decode(data)
 	if block == nil {
 		// DER format
@@ -131,15 +133,36 @@ func ParseContainerChain(data []byte) *Container {
 	} else {
 		err := c.parseDERFormat(block.Bytes)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
 
 	if len(rest) > 0 {
-		c.next = ParseContainerChain(rest)
+		next, err := ParseContainerChain(rest)
+		if err != nil {
+			return nil, err
+		}
+
+		c.next = next
 	}
 
-	return c
+	return c, nil
+}
+
+func ParseContainerChainFromFile(filename string) (*Container, error) {
+	fd, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	defer fd.Close()
+
+	content, err := io.ReadAll(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseContainerChain(content)
 }
 
 func (c *Container) setECParamter(data []byte) {
@@ -217,7 +240,11 @@ func (c *Container) setKeyWithFormat(key any, format KeyFileFormat) error {
 	return nil
 }
 
-func (c *Container) KeyType() string {
+func (c *Container) KeyType() KeyType {
+	return c.keyType
+}
+
+func (c *Container) KeyTypeString() string {
 	if c.isPEM {
 		return fmt.Sprintf("PEM[(%s) %s %s]",
 			c.pemType, c.format, c.keyType)
@@ -228,4 +255,20 @@ func (c *Container) KeyType() string {
 
 func (c *Container) Next() *Container {
 	return c.next
+}
+
+func (c *Container) RSAPrivateKey() *rsa.PrivateKey {
+	return c.rsaPri
+}
+
+func (c *Container) RSAPublicKey() *rsa.PublicKey {
+	return c.rsaPub
+}
+
+func (c *Container) ECDSAPrivateKey() *ecdsa.PrivateKey {
+	return c.ecdPri
+}
+
+func (c *Container) ECDSAPublicKey() *ecdsa.PublicKey {
+	return c.ecdPub
 }

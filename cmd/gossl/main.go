@@ -23,6 +23,7 @@ func init() {
 		"genrsa":   keygen.MainGenRSA,
 		"rsa":      cipher.MainRSA,
 		"genecdsa": keygen.MainGenEC,
+		"ec":       cipher.MainEC,
 		"format":   format.MainFormat,
 		"help":     showHelp,
 	}
