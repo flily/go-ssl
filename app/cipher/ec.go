@@ -10,17 +10,31 @@ import (
 	"github.com/flily/go-ssl/common/prettyprint"
 )
 
-func showECPrivateKey(privateKey *ecdsa.PrivateKey) {
-	fmt.Printf("curve: %s\n", privateKey.Curve.Params().Name)
-	prettyprint.PrintBinary("X", privateKey.X.Bytes())
-	prettyprint.PrintBinary("Y", privateKey.Y.Bytes())
-	prettyprint.PrintBinary("D", privateKey.D.Bytes())
+func showECPublicKeyXY(publicKey *ecdsa.PublicKey, showQ bool, showQCompress bool) {
+	if showQ {
+		if showQCompress {
+			prettyprint.PrintBinarys("Q (Public, Compressed)",
+				[]byte{0x02}, publicKey.X.Bytes())
+		} else {
+			prettyprint.PrintBinarys("Q (Public, Uncompressed)",
+				[]byte{0x04}, publicKey.X.Bytes(), publicKey.Y.Bytes())
+		}
+	} else {
+		prettyprint.PrintBinary("X (Public)", publicKey.X.Bytes())
+		prettyprint.PrintBinary("Y (Public)", publicKey.Y.Bytes())
+	}
 }
 
-func showECPublicKey(publicKey *ecdsa.PublicKey) {
+func showECPrivateKey(privateKey *ecdsa.PrivateKey, showQ bool, showQCompress bool) {
+	fmt.Printf("curve: %s\n", privateKey.Curve.Params().Name)
+	prettyprint.PrintBinary("D (Private)", privateKey.D.Bytes())
+
+	showECPublicKeyXY(&privateKey.PublicKey, showQ, showQCompress)
+}
+
+func showECPublicKey(publicKey *ecdsa.PublicKey, showQ bool, showQCompress bool) {
 	fmt.Printf("curve: %s\n", publicKey.Curve.Params().Name)
-	prettyprint.PrintBinary("X", publicKey.X.Bytes())
-	prettyprint.PrintBinary("Y", publicKey.Y.Bytes())
+	showECPublicKeyXY(publicKey, showQ, showQCompress)
 }
 
 func loadECKey(filename string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
@@ -50,6 +64,8 @@ func ecCommandShow(ctx *clicontext.CommandContext) error {
 	set := flag.NewFlagSet("ec show", flag.ExitOnError)
 	inFile := set.String("in", "-", "Input file")
 	showPublic := set.Bool("public", false, "Show public key")
+	showQ := set.Bool("q", false, "Show public key in Q (x || y) format")
+	showQCompress := set.Bool("qcompress", false, "Show public key in Q compressed format")
 	err := ctx.Parse(set)
 	if err != nil {
 		return err
@@ -61,9 +77,9 @@ func ecCommandShow(ctx *clicontext.CommandContext) error {
 	}
 
 	if *showPublic || privateKey == nil {
-		showECPublicKey(publicKey)
+		showECPublicKey(publicKey, *showQ, *showQCompress)
 	} else {
-		showECPrivateKey(privateKey)
+		showECPrivateKey(privateKey, *showQ, *showQCompress)
 	}
 
 	return nil

@@ -32,6 +32,15 @@ func PrintBinary(name string, value []byte) {
 		name, len(value), binaryHex(value, 15, "    "))
 }
 
+func PrintBinarys(name string, values ...[]byte) {
+	data := make([]byte, 0)
+	for _, value := range values {
+		data = append(data, value...)
+	}
+
+	PrintBinary(name, data)
+}
+
 // PPrintBinary print value make sure it is positive
 func PPrintBinary(name string, value []byte) {
 	if len(value) == 0 {
