@@ -1,8 +1,9 @@
 package asn1
 
 import (
-	"bytes"
 	"testing"
+
+	"bytes"
 )
 
 func TestTagSerialization(t *testing.T) {

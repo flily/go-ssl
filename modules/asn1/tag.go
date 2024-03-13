@@ -1,5 +1,10 @@
 package asn1
 
+// asn1 implements DER encoding and decoding of ASN.1 data structures.
+// Reference:
+//   - ITU-T X.680, ISO/IEC 8824-1:2021
+//   - ITU-T X.690, ISO/IEC 8825-1:2021
+
 import (
 	"fmt"
 )
@@ -13,29 +18,39 @@ type Tag struct {
 }
 
 const (
+	// Defined X.690 8.1.2.2.a Table 1
 	TagClassUniversal       TagClass = 0
 	TagClassApplication     TagClass = 1
 	TagClassContextSpecific TagClass = 2
 	TagClassPrivate         TagClass = 3
 
-	TagBoolean          = 1
-	TagInteger          = 2
-	TagBitString        = 3
-	TagOctetString      = 4
-	TagNull             = 5
-	TagObjectIdentifier = 6
-	TagEnumerated       = 10
-	TagUTF8String       = 12
-	TagSequence         = 16
-	TagSet              = 17
-	TagNumericString    = 18
-	TagPrintableString  = 19
-	TagT61String        = 20
-	TagIA5String        = 22
-	TagUTCTime          = 23
-	TagGeneralizedTime  = 24
-	TagGeneralString    = 27
-	TagBMPString        = 30
+	// Defined X.680 8.4 Table 1
+	TagReserved0          = 0
+	TagBoolean            = 1
+	TagInteger            = 2
+	TagBitString          = 3
+	TagOctetString        = 4
+	TagNull               = 5
+	TagObjectIdentifier   = 6
+	TagObjectDescriptor   = 7
+	TagExternalInstanceOf = 8
+	TagReal               = 9
+	TagEnumerated         = 10
+	TagEmbeddedPDV        = 11
+	TagUTF8String         = 12
+	TagRelativeOID        = 13
+	TagTime               = 14
+	TagReserved15         = 15
+	TagSequence           = 16
+	TagSet                = 17
+	TagNumericString      = 18
+	TagPrintableString    = 19
+	TagT61String          = 20
+	TagIA5String          = 22
+	TagUTCTime            = 23
+	TagGeneralizedTime    = 24
+	TagGeneralString      = 27
+	TagBMPString          = 30
 
 	TagMaskClass       = 0xc0
 	TagMaskConstructed = 0x20
