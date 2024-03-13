@@ -36,8 +36,7 @@ func TestLengthEncoding(t *testing.T) {
 				buffer[:wNext], c.expected, c.length)
 		}
 
-		l1 := Length(0)
-		rNext, err := l1.ReadFrom(buffer, 0)
+		l1, rNext, err := ReadLength(buffer, 0)
 		if err != nil {
 			t.Errorf("unexpected error '%v' on case: %+v", err, c.length)
 		}

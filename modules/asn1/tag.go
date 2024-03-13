@@ -108,6 +108,15 @@ func (t *Tag) String() string {
 	return s
 }
 
+func (t *Tag) WireLength() int {
+	if t.Number <= 30 {
+		return 1
+	}
+
+	return 1 + getBase128UintByteSize(t.Number)
+
+}
+
 func (t *Tag) ReadFrom(buffer []byte, offset int) (int, error) {
 	if err := checkBufferSize(buffer, offset, 1); err != nil {
 		return -1, err
@@ -140,6 +149,16 @@ func (t *Tag) ReadFrom(buffer []byte, offset int) (int, error) {
 
 	t.Number = num
 	return i, nil
+}
+
+func ReadTag(buffer []byte, offset int) (*Tag, int, error) {
+	t := &Tag{}
+	next, err := t.ReadFrom(buffer, offset)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	return t, next, nil
 }
 
 func (t *Tag) WriteTo(buffer []byte, offset int) (int, error) {

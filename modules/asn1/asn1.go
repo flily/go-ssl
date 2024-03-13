@@ -10,7 +10,7 @@ import (
 //   - ITU-T X.690, ISO/IEC 8825-1:2021
 
 type ASN1Object interface {
-	Tag() Tag
+	Tag() *Tag
 	ContentLength() Length
 	WriteContentTo(buffer []byte, offset int) (int, error)
 	ReadContentFrom(buffer []byte, offset int, length Length) error
@@ -51,6 +51,12 @@ func makeASN1Object(tag *Tag) (ASN1Object, error) {
 	case TagBoolean:
 		o = new(ASN1Boolean)
 
+	case TagInteger:
+		o = NewIntegerFromInt64(0)
+
+	case TagSequence:
+		o = new(ASN1Sequence)
+
 	default:
 		err = fmt.Errorf("asn1: unsupported tag %s", tag)
 	}
@@ -69,8 +75,8 @@ func ReadASN1Objects(buffer []byte, offset int, length int) ([]ASN1Object, int, 
 			return nil, -1, err
 		}
 
-		length := Length(0)
-		next, err = length.ReadFrom(buffer, next)
+		var objLength Length
+		objLength, next, err = ReadLength(buffer, next)
 		if err != nil {
 			return nil, -1, err
 		}
@@ -80,12 +86,12 @@ func ReadASN1Objects(buffer []byte, offset int, length int) ([]ASN1Object, int, 
 			return nil, -1, err
 		}
 
-		err = obj.ReadContentFrom(buffer, next, length)
+		err = obj.ReadContentFrom(buffer, next, objLength)
 		if err != nil {
 			return nil, -1, err
 		}
 
-		next += length.Int()
+		next += objLength.Int()
 		objects = append(objects, obj)
 	}
 
