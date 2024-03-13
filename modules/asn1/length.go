@@ -6,12 +6,12 @@ import (
 
 type Length uint64
 
-func (l *Length) Uint() uint64 {
-	return uint64(*l)
+func (l *Length) Int() int {
+	return int(*l)
 }
 
 func (l *Length) String() string {
-	return fmt.Sprintf("Length[%d]", l.Uint())
+	return fmt.Sprintf("Length[%d]", l.Int())
 }
 
 func (l *Length) ReadFrom(buffer []byte, offset int) (int, error) {
@@ -52,7 +52,7 @@ func (l *Length) ReadFrom(buffer []byte, offset int) (int, error) {
 }
 
 func (l *Length) WriteTo(buffer []byte, offset int) (int, error) {
-	n := l.Uint()
+	n := uint64(*l)
 	if n < 0x80 {
 		buffer[offset] = byte(n)
 		return offset + 1, nil

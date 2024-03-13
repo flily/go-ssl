@@ -8,7 +8,7 @@ import (
 
 func TestLengthSerialization(t *testing.T) {
 	cases := []struct {
-		length   Length
+		length   int
 		expected []byte
 	}{
 		{3, []byte{0x03}},
@@ -20,7 +20,8 @@ func TestLengthSerialization(t *testing.T) {
 
 	buffer := make([]byte, 10)
 	for _, c := range cases {
-		wNext, err := c.length.WriteTo(buffer, 0)
+		l0 := Length(c.length)
+		wNext, err := l0.WriteTo(buffer, 0)
 		if err != nil {
 			t.Errorf("unexpected error '%v' on case: %+v", err, c.length)
 		}
@@ -35,8 +36,8 @@ func TestLengthSerialization(t *testing.T) {
 				buffer[:wNext], c.expected, c.length)
 		}
 
-		var l Length
-		rNext, err := l.ReadFrom(buffer, 0)
+		l1 := Length(0)
+		rNext, err := l1.ReadFrom(buffer, 0)
 		if err != nil {
 			t.Errorf("unexpected error '%v' on case: %+v", err, c.length)
 		}
@@ -46,8 +47,12 @@ func TestLengthSerialization(t *testing.T) {
 				rNext, wNext, c.length)
 		}
 
-		if l != c.length {
-			t.Errorf("wrong length parsed: %+v, expected %+v", l, c.length)
+		if l1 != l0 {
+			t.Errorf("wrong length parsed: %+v, expected %+v", l1, l0)
+		}
+
+		if l1.Int() != c.length {
+			t.Errorf("wrong length parsed: %+v, expected %+v", l1, c.length)
 		}
 	}
 }
