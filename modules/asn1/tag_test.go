@@ -6,7 +6,7 @@ import (
 	"bytes"
 )
 
-func TestTagSerialization(t *testing.T) {
+func TestTagEncoding(t *testing.T) {
 	cases := []struct {
 		tag      *Tag
 		expected []byte
@@ -36,7 +36,7 @@ func TestTagSerialization(t *testing.T) {
 		}
 
 		if !bytes.Equal(buffer[:wNext], c.expected) {
-			t.Errorf("wrong serialization result: %x, expected %x, case: %+v",
+			t.Errorf("wrong encoding result: %x, expected %x, case: %+v",
 				buffer[:wNext], c.expected, c.tag)
 		}
 

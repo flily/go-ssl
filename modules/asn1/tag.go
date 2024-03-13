@@ -1,10 +1,5 @@
 package asn1
 
-// asn1 implements DER encoding and decoding of ASN.1 data structures.
-// Reference:
-//   - ITU-T X.680, ISO/IEC 8824-1:2021
-//   - ITU-T X.690, ISO/IEC 8825-1:2021
-
 import (
 	"fmt"
 )
