@@ -1,6 +1,8 @@
 package asn1
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // asn1 implements DER encoding and decoding of ASN.1 data structures.
 // Reference:
@@ -12,6 +14,8 @@ type ASN1Object interface {
 	ContentLength() Length
 	WriteContentTo(buffer []byte, offset int) (int, error)
 	ReadContentFrom(buffer []byte, offset int, length Length) error
+	String() string
+	PrettyString(indent string) string
 }
 
 func WriteASN1Objects(buffer []byte, offset int, objects ...ASN1Object) (int, error) {

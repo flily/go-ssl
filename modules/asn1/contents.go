@@ -49,3 +49,15 @@ func (b *ASN1Boolean) ReadContentFrom(buffer []byte, offset int, length Length) 
 
 	return nil
 }
+
+func (b *ASN1Boolean) String() string {
+	if *b {
+		return "Boolean[true]"
+	} else {
+		return "Boolean[false]"
+	}
+}
+
+func (b *ASN1Boolean) PrettyString(indent string) string {
+	return indent + b.String()
+}
