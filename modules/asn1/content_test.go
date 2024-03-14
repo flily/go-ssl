@@ -127,47 +127,55 @@ func TestIntegerContentEncoding(t *testing.T) {
 	}
 }
 
-func TestObjectIdentifierEncoding(t *testing.T) {
+func TestBitStringPrimitiveEncoding(t *testing.T) {
 	cases := []struct {
-		value    []uint64
+		data     []byte
+		length   int
 		expected []byte
 	}{
 		{
-			[]uint64{2, 5, 4, 6},
-			[]byte{0x55, 0x04, 0x06},
+			data:     []byte{0x0a, 0x3b, 0x5f, 0x29, 0xc1, 0xd0},
+			length:   44,
+			expected: []byte{0x04, 0x0a, 0x3b, 0x5f, 0x29, 0xc1, 0xd0},
+		},
+		{
+			data:     []byte{0x0a, 0x3b, 0x5f, 0x29, 0xc1, 0xd0},
+			length:   48,
+			expected: []byte{0x00, 0x0a, 0x3b, 0x5f, 0x29, 0xc1, 0xd0},
 		},
 	}
 
 	buffer := make([]byte, 100)
 	for _, c := range cases {
-		obj0 := ASN1ObjectIdentifier(c.value)
-		wNext, err := obj0.WriteContentTo(buffer, 0)
+		bs := NewBitString(c.data, c.length)
+		wNext, err := bs.WriteContentTo(buffer, 0)
 		if err != nil {
-			t.Errorf("unexpected error '%v' on case: %+v", err, c.value)
+			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
 		}
 
 		if wNext != len(c.expected) {
 			t.Errorf("wrong next offset %d returned, expected %d, case: %+v",
-				wNext, len(c.expected), c.value)
+				wNext, len(c.expected), c.data)
 		}
 
 		if !bytes.Equal(buffer[:wNext], c.expected) {
 			t.Errorf("wrong encoding result: %x, expected %x, case: %+v",
-				buffer[:wNext], c.expected, c.value)
+				buffer[:wNext], c.expected, c.data)
 		}
 
 		info := &ASN1ObjectInfo{
-			Tag:    obj0.Tag(),
+			Tag:    bs.Tag(),
 			Length: Length(len(c.expected)),
 		}
-		obj1 := &ASN1ObjectIdentifier{}
-		err = obj1.ReadContentFrom(buffer, 0, info)
+
+		bs1 := NewBitString(nil, 0)
+		err = bs1.ReadContentFrom(buffer, 0, info)
 		if err != nil {
-			t.Errorf("unexpected error '%v' on case: %+v", err, c.value)
+			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
 		}
 
-		if !obj0.Equal(obj1) {
-			t.Errorf("wrong content parsed: %+v, expected %+v", obj1, obj0)
+		if !bytes.Equal(bs1.Data, c.data) {
+			t.Errorf("wrong content parsed: %+v, expected %+v", bs1.Data, bs.Data)
 		}
 	}
 }

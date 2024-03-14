@@ -12,11 +12,11 @@ func TestTagEncoding(t *testing.T) {
 		expected []byte
 	}{
 		{
-			&Tag{TagClassUniversal, TagSequence, true},
+			&Tag{TagClassUniversal, TagConstructed, TagSequence},
 			[]byte{0x30},
 		},
 		{
-			&Tag{TagClassPrivate, 0x1234, false},
+			&Tag{TagClassPrivate, TagPrimitive, 0x1234},
 			//   0001 0010   0011 0100
 			// [1]010 0100 [0]011 0100
 			[]byte{0xdf, 0xa4, 0x34},

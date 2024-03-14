@@ -23,9 +23,9 @@ func NewBoolean(value bool) *ASN1Boolean {
 
 func (b *ASN1Boolean) Tag() *Tag {
 	t := &Tag{
-		Class:       TagClassUniversal,
-		Constructed: false, // X.690 8.2.1, boolen value SHALL BE primitive
-		Number:      TagBoolean,
+		Class:  TagClassUniversal,
+		PC:     TagPrimitive, // X.690 8.2.1, boolen value SHALL BE primitive
+		Number: TagBoolean,
 	}
 
 	return t
@@ -92,9 +92,9 @@ func NewIntegerFromInt64(value int64) *ASN1Integer {
 
 func (i *ASN1Integer) Tag() *Tag {
 	t := &Tag{
-		Class:       TagClassUniversal,
-		Constructed: false, // X.690 8.3.1, integer value SHALL BE primitive
-		Number:      TagInteger,
+		Class:  TagClassUniversal,
+		PC:     TagPrimitive, // X.690 8.3.1, integer value SHALL BE primitive
+		Number: TagInteger,
 	}
 
 	return t
@@ -171,18 +171,117 @@ func (i *ASN1Integer) Equal(other ASN1Object) bool {
 	return false
 }
 
+type ASN1BitString struct {
+	Data      []byte
+	Object    ASN1Object
+	PC        ContentType
+	BitLength int
+}
+
+func NewBitString(data []byte, bitLength int) *ASN1BitString {
+	byteLength := (bitLength + 7) / 8
+	if byteLength > len(data) {
+		byteLength = len(data)
+		bitLength = byteLength * 8
+	}
+
+	s := &ASN1BitString{
+		Data:      make([]byte, byteLength),
+		BitLength: bitLength,
+	}
+
+	copy(s.Data, data[:byteLength])
+	return s
+}
+
+func (s *ASN1BitString) Tag() *Tag {
+	t := &Tag{
+		Class:  TagClassUniversal,
+		PC:     s.PC, // X.690 8.6.1, bit string value SHALL BE primitive or constructed
+		Number: TagBitString,
+	}
+
+	return t
+}
+
+func (s *ASN1BitString) ContentLength() Length {
+	return Length(len(s.Data) + 1)
+}
+
+func (s *ASN1BitString) WriteContentTo(buffer []byte, offset int) (int, error) {
+	if err := checkBufferSize(buffer, offset, len(s.Data)+1); err != nil {
+		return -1, err
+	}
+
+	next := offset
+	if s.Object != nil {
+		if s.PC == TagPrimitive {
+			buffer[next] = 0x00
+			next++
+		}
+
+		wNext, err := s.Object.WriteContentTo(buffer, next)
+		if err != nil {
+			return -1, err
+		}
+
+		next = wNext
+
+	} else {
+		if s.PC == TagPrimitive {
+			byteBitLength := len(s.Data) * 8
+			buffer[next] = byte(byteBitLength - s.BitLength)
+			next++
+		}
+
+		copy(buffer[next:], s.Data)
+		next += len(s.Data)
+	}
+
+	return next, nil
+}
+
+func (s *ASN1BitString) ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error {
+	s.PC = info.Tag.PC
+	var err error
+	if s.PC == TagConstructed {
+		s.Object, _, err = ReadASN1Object(buffer, offset)
+
+	} else {
+		diff := buffer[offset]
+		length := info.Length.Int()
+		s.Data = make([]byte, length-1)
+		copy(s.Data, buffer[offset+1:offset+length])
+		s.BitLength = (length-1)*8 - int(diff)
+	}
+
+	return err
+}
+
+func (s *ASN1BitString) String() string {
+	return fmt.Sprintf("BitString[%d bits]", s.BitLength)
+}
+
+func (s *ASN1BitString) PrettyString(indent string) string {
+	if s.PC == TagConstructed || s.Object == nil {
+		return s.Object.PrettyString(indent)
+	} else {
+		return indent + s.String()
+	}
+}
+
 type ASN1OctetString struct {
 	kind        objectInnerKind
 	valueBytes  []byte
 	valueObject ASN1Object
-	Constructed bool
+	PC          ContentType
 }
 
 func NewOctetStringFromBytes(value []byte) *ASN1OctetString {
 	s := &ASN1OctetString{
-		kind:        objectInnerKindBytes,
-		valueBytes:  value,
-		Constructed: false,
+		kind:       objectInnerKindBytes,
+		valueBytes: value,
+		PC:         TagPrimitive,
 	}
 
 	return s
@@ -192,7 +291,7 @@ func NewOctetStringFromObject(obj ASN1Object) *ASN1OctetString {
 	s := &ASN1OctetString{
 		kind:        objectInnerKindASN1Object,
 		valueObject: obj,
-		Constructed: true,
+		PC:          TagConstructed,
 	}
 
 	return s
@@ -212,9 +311,9 @@ func NewOctetString(value any) *ASN1OctetString {
 
 func (s *ASN1OctetString) Tag() *Tag {
 	t := &Tag{
-		Class:       TagClassUniversal,
-		Constructed: s.Constructed, // X.690 8.7.1, octet string value SHALL BE primitive or constructed
-		Number:      TagOctetString,
+		Class:  TagClassUniversal,
+		PC:     s.PC, // X.690 8.7.1, octet string value SHALL BE primitive or constructed
+		Number: TagOctetString,
 	}
 
 	return t
@@ -251,14 +350,15 @@ func (s *ASN1OctetString) WriteContentTo(buffer []byte, offset int) (int, error)
 
 func (s *ASN1OctetString) ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error {
 	var err error
-	if info.Tag.Constructed {
+	if info.Tag.PC {
 		s.kind = objectInnerKindASN1Object
-		s.Constructed = true
+		s.PC = TagConstructed
 		s.valueObject = nil
 		s.valueObject, _, err = ReadASN1Object(buffer, offset)
 
 	} else {
 		s.kind = objectInnerKindBytes
+		s.PC = TagPrimitive
 		s.valueBytes = make([]byte, info.Length.Int())
 		copy(s.valueBytes, buffer[offset:offset+info.Length.Int()])
 	}
@@ -301,9 +401,9 @@ func NewNull() *ASN1Null {
 
 func (n *ASN1Null) Tag() *Tag {
 	t := &Tag{
-		Class:       TagClassUniversal,
-		Constructed: false, // X.690 8.8.1, null value SHALL BE primitive
-		Number:      TagNull,
+		Class:  TagClassUniversal,
+		PC:     TagPrimitive, // X.690 8.8.1, null value SHALL BE primitive
+		Number: TagNull,
 	}
 
 	return t
@@ -334,107 +434,6 @@ func (n *ASN1Null) Equal(other ASN1Object) bool {
 	return ok
 }
 
-type ASN1ObjectIdentifier []uint64
-
-func NewObjectIdentifier(ids ...uint64) *ASN1ObjectIdentifier {
-	if len(ids) < 2 {
-		return nil
-	}
-
-	oid := ASN1ObjectIdentifier(ids)
-	return &oid
-}
-
-func (i *ASN1ObjectIdentifier) Tag() *Tag {
-	t := &Tag{
-		Class:       TagClassUniversal,
-		Constructed: false, // X.690 8.19.1, object identifier value SHALL BE primitive
-		Number:      TagObjectIdentifier,
-	}
-
-	return t
-}
-
-func (i *ASN1ObjectIdentifier) ContentLength() Length {
-	length := 1
-
-	for j := 2; j < len(*i); j++ {
-		length += getBase128UintByteSize((*i)[j])
-	}
-
-	return Length(length)
-}
-
-func (i *ASN1ObjectIdentifier) WriteContentTo(buffer []byte, offset int) (int, error) {
-	if err := checkBufferSize(buffer, offset, i.ContentLength().Int()); err != nil {
-		return -1, err
-	}
-
-	firstOctet := (*i)[0]*40 + (*i)[1]
-	buffer[offset] = byte(firstOctet)
-	next := offset + 1
-	for j := 2; j < len(*i); j++ {
-		n := (*i)[j]
-		size := getBase128UintByteSize(n)
-		next = writeBase128Uint(buffer, next, n, size)
-	}
-
-	return next, nil
-}
-
-func (i *ASN1ObjectIdentifier) ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error {
-	length := info.Length.Int()
-	if err := checkBufferSize(buffer, offset, length); err != nil {
-		return err
-	}
-
-	firstOctet := buffer[offset]
-	*i = append((*i)[:0], uint64(firstOctet/40), uint64(firstOctet%40))
-	next := offset + 1
-	for next < offset+length {
-		var n uint64
-		n, next = readBase128Uint(buffer, next)
-		if next < 0 {
-			return fmt.Errorf("asn1: invalid object identifier at byte %d", next)
-		}
-
-		*i = append(*i, n)
-	}
-
-	return nil
-}
-
-func (i *ASN1ObjectIdentifier) String() string {
-	parts := make([]string, len(*i))
-	for j, id := range *i {
-		parts[j] = fmt.Sprintf("%d", id)
-	}
-
-	return fmt.Sprintf("ObjectIdentifier[%s]", strings.Join(parts, "."))
-}
-
-func (i *ASN1ObjectIdentifier) PrettyString(indent string) string {
-	return indent + i.String()
-}
-
-func (i *ASN1ObjectIdentifier) Equal(other ASN1Object) bool {
-	if otherOID, ok := other.(*ASN1ObjectIdentifier); ok {
-		if len(*i) != len(*otherOID) {
-			return false
-		}
-
-		for j, id := range *i {
-			if id != (*otherOID)[j] {
-				return false
-			}
-		}
-
-		return true
-	}
-
-	return false
-}
-
 type ASN1Sequence []ASN1Object
 
 func NewSequence(objects ...ASN1Object) *ASN1Sequence {
@@ -444,9 +443,9 @@ func NewSequence(objects ...ASN1Object) *ASN1Sequence {
 
 func (s *ASN1Sequence) Tag() *Tag {
 	t := &Tag{
-		Class:       TagClassUniversal,
-		Constructed: true, // X.690 8.2.2, sequence value SHALL BE constructed
-		Number:      TagSequence,
+		Class:  TagClassUniversal,
+		PC:     TagConstructed, // X.690 8.2.2, sequence value SHALL BE constructed
+		Number: TagSequence,
 	}
 
 	return t

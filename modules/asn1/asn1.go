@@ -63,6 +63,9 @@ func makeASN1Object(tag *Tag) ASN1Object {
 	case TagInteger:
 		o = NewIntegerFromInt64(0)
 
+	case TagBitString:
+		o = NewBitString(nil, 0)
+
 	case TagNull:
 		o = NewNull()
 

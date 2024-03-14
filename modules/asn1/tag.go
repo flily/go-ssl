@@ -6,13 +6,18 @@ import (
 
 type TagClass uint8
 
+type ContentType bool
+
 type Tag struct {
-	Class       TagClass
-	Number      uint64
-	Constructed bool
+	Class  TagClass
+	PC     ContentType
+	Number uint64
 }
 
 const (
+	TagPrimitive   ContentType = false
+	TagConstructed ContentType = true
+
 	// Defined X.690 8.1.2.2.a Table 1
 	TagClassUniversal       TagClass = 0
 	TagClassApplication     TagClass = 1
@@ -99,7 +104,7 @@ func getTagNumberName(n uint64) string {
 
 func (t *Tag) String() string {
 	c := ""
-	if t.Constructed {
+	if t.PC {
 		c = " C"
 	}
 	s := fmt.Sprintf("Tag[class=%s number=%s%s]",
@@ -125,7 +130,7 @@ func (t *Tag) ReadFrom(buffer []byte, offset int) (int, error) {
 	firstOctet := buffer[offset]
 
 	t.Class = TagClass(firstOctet >> 6)
-	t.Constructed = (firstOctet & TagMaskConstructed) != 0
+	t.PC = (firstOctet & TagMaskConstructed) != 0
 	num := uint64(firstOctet & 0x1f)
 	if num <= 30 {
 		t.Number = num
@@ -153,7 +158,7 @@ func ReadTag(buffer []byte, offset int) (*Tag, int, error) {
 
 func (t *Tag) WriteTo(buffer []byte, offset int) (int, error) {
 	mask := byte(t.Class) << 6
-	if t.Constructed {
+	if t.PC {
 		mask |= TagMaskConstructed
 	}
 
