@@ -495,3 +495,54 @@ func (s *ASN1Sequence) PrettyString(indent string) string {
 
 	return strings.Join(buffer, "\n")
 }
+
+type ASN1GenericData struct {
+	tag  *Tag
+	Data []byte
+}
+
+func NewGenericData(tag *Tag, data []byte) *ASN1GenericData {
+	g := &ASN1GenericData{
+		tag:  tag,
+		Data: data,
+	}
+
+	return g
+}
+
+func (g *ASN1GenericData) Tag() *Tag {
+	return g.tag
+}
+
+func (g *ASN1GenericData) ContentLength() Length {
+	return Length(len(g.Data))
+}
+
+func (g *ASN1GenericData) WriteContentTo(buffer []byte, offset int) (int, error) {
+	if err := checkBufferSize(buffer, offset, len(g.Data)); err != nil {
+		return -1, err
+	}
+
+	copy(buffer[offset:], g.Data)
+	return offset + len(g.Data), nil
+}
+
+func (g *ASN1GenericData) ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error {
+	length := info.Length.Int()
+	if err := checkBufferSize(buffer, offset, length); err != nil {
+		return err
+	}
+
+	g.tag = info.Tag
+	g.Data = make([]byte, length)
+	copy(g.Data, buffer[offset:offset+length])
+	return nil
+}
+
+func (g *ASN1GenericData) String() string {
+	return fmt.Sprintf("GenericData[%s (%d bytes)]", g.tag, len(g.Data))
+}
+
+func (g *ASN1GenericData) PrettyString(indent string) string {
+	return indent + g.String()
+}

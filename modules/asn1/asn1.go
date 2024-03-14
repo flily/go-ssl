@@ -1,9 +1,5 @@
 package asn1
 
-import (
-	"fmt"
-)
-
 // asn1 implements DER encoding and decoding of ASN.1 data structures.
 // Reference:
 //   - ITU-T X.680, ISO/IEC 8824-1:2021
@@ -58,9 +54,8 @@ func WriteASN1Objects(buffer []byte, offset int, objects ...ASN1Object) (int, er
 	return offset, nil
 }
 
-func makeASN1Object(tag *Tag) (ASN1Object, error) {
+func makeASN1Object(tag *Tag) ASN1Object {
 	var o ASN1Object
-	var err error
 	switch tag.Number {
 	case TagBoolean:
 		o = new(ASN1Boolean)
@@ -81,10 +76,10 @@ func makeASN1Object(tag *Tag) (ASN1Object, error) {
 		o = new(ASN1Sequence)
 
 	default:
-		err = fmt.Errorf("asn1: unsupported tag %s", tag)
+		o = new(ASN1GenericData)
 	}
 
-	return o, err
+	return o
 }
 
 func ReadASN1Object(buffer []byte, offset int) (ASN1Object, int, error) {
@@ -99,10 +94,7 @@ func ReadASN1Object(buffer []byte, offset int) (ASN1Object, int, error) {
 	}
 
 	info := NewASN1ObjectInfo(tag, objLength)
-	obj, err := makeASN1Object(tag)
-	if err != nil {
-		return nil, -1, err
-	}
+	obj := makeASN1Object(tag)
 
 	err = obj.ReadContentFrom(buffer, next, info)
 	if err != nil {
