@@ -9,11 +9,25 @@ import (
 //   - ITU-T X.680, ISO/IEC 8824-1:2021
 //   - ITU-T X.690, ISO/IEC 8825-1:2021
 
+type ASN1ObjectInfo struct {
+	Tag    *Tag
+	Length Length
+}
+
+func NewASN1ObjectInfo(tag *Tag, length Length) *ASN1ObjectInfo {
+	i := &ASN1ObjectInfo{
+		Tag:    tag,
+		Length: length,
+	}
+
+	return i
+}
+
 type ASN1Object interface {
 	Tag() *Tag
 	ContentLength() Length
 	WriteContentTo(buffer []byte, offset int) (int, error)
-	ReadContentFrom(buffer []byte, offset int, length Length) error
+	ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error
 	String() string
 	PrettyString(indent string) string
 }
@@ -54,6 +68,15 @@ func makeASN1Object(tag *Tag) (ASN1Object, error) {
 	case TagInteger:
 		o = NewIntegerFromInt64(0)
 
+	case TagNull:
+		o = NewNull()
+
+	case TagOctetString:
+		o = NewOctetString(nil)
+
+	case TagObjectIdentifier:
+		o = new(ASN1ObjectIdentifier)
+
 	case TagSequence:
 		o = new(ASN1Sequence)
 
@@ -64,34 +87,43 @@ func makeASN1Object(tag *Tag) (ASN1Object, error) {
 	return o, err
 }
 
+func ReadASN1Object(buffer []byte, offset int) (ASN1Object, int, error) {
+	tag, next, err := ReadTag(buffer, offset)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	objLength, next, err := ReadLength(buffer, next)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	info := NewASN1ObjectInfo(tag, objLength)
+	obj, err := makeASN1Object(tag)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	err = obj.ReadContentFrom(buffer, next, info)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	next += objLength.Int()
+	return obj, next, nil
+}
+
 func ReadASN1Objects(buffer []byte, offset int, length int) ([]ASN1Object, int, error) {
 	objects := make([]ASN1Object, 0)
 	next := offset
 	var err error
 	for next < length {
-		tag := &Tag{}
-		next, err = tag.ReadFrom(buffer, next)
+		var obj ASN1Object
+		obj, next, err = ReadASN1Object(buffer, next)
 		if err != nil {
 			return nil, -1, err
 		}
 
-		var objLength Length
-		objLength, next, err = ReadLength(buffer, next)
-		if err != nil {
-			return nil, -1, err
-		}
-
-		obj, err := makeASN1Object(tag)
-		if err != nil {
-			return nil, -1, err
-		}
-
-		err = obj.ReadContentFrom(buffer, next, objLength)
-		if err != nil {
-			return nil, -1, err
-		}
-
-		next += objLength.Int()
 		objects = append(objects, obj)
 	}
 

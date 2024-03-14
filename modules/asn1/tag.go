@@ -132,23 +132,13 @@ func (t *Tag) ReadFrom(buffer []byte, offset int) (int, error) {
 		return offset + 1, nil
 	}
 
-	num, i := 0, offset+1
-	finished := false
-	for i < len(buffer) && !finished {
-		b := buffer[i]
-		i += 1
-		num = (num << 7) | uint64(b&0x7f)
-		if b&0x80 == 0 {
-			finished = true
-		}
-	}
-
-	if !finished {
-		return -1, fmt.Errorf("asn1: invalid tag number at byte %d", i)
+	num, next := readBase128Uint(buffer, offset+1)
+	if next < 0 {
+		return -1, fmt.Errorf("asn1: invalid tag number at byte %d", offset+1)
 	}
 
 	t.Number = num
-	return i, nil
+	return next, nil
 }
 
 func ReadTag(buffer []byte, offset int) (*Tag, int, error) {
@@ -162,7 +152,6 @@ func ReadTag(buffer []byte, offset int) (*Tag, int, error) {
 }
 
 func (t *Tag) WriteTo(buffer []byte, offset int) (int, error) {
-
 	mask := byte(t.Class) << 6
 	if t.Constructed {
 		mask |= TagMaskConstructed
@@ -184,15 +173,7 @@ func (t *Tag) WriteTo(buffer []byte, offset int) (int, error) {
 	}
 
 	buffer[offset] = mask | 0x1f
-	for i := 0; i < size; i++ {
-		b := num >> uint((size-i-1)*7)
-		if i < size-1 {
-			b |= 0x80
-		}
-
-		buffer[offset+i+1] = byte(b)
-	}
-
+	writeBase128Uint(buffer, offset+1, num, size)
 	return offset + size + 1, nil
 }
 
