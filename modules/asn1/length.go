@@ -4,7 +4,11 @@ import (
 	"fmt"
 )
 
-type Length uint64
+type Length int64
+
+func IndefiniteLength() Length {
+	return -1
+}
 
 func (l Length) Int() int {
 	return int(l)
@@ -14,13 +18,17 @@ func (l Length) String() string {
 	return fmt.Sprintf("Length[%d]", l.Int())
 }
 
+func (l Length) IsIndefinite() bool {
+	return l < 0
+}
+
 func (l Length) WireLength() int {
-	n := uint64(l)
+	n := int64(l)
 	if n < 0x80 {
 		return 1
 	}
 
-	return 1 + getBase256UintByteSize(n)
+	return 1 + getBase256UintByteSize(uint64(n))
 }
 
 func ReadLength(buffer []byte, offset int) (Length, int, error) {
@@ -29,6 +37,11 @@ func ReadLength(buffer []byte, offset int) (Length, int, error) {
 	}
 
 	firstOctet := buffer[offset]
+	if firstOctet == 0x80 {
+		// Indefinite length
+		return IndefiniteLength(), offset + 1, nil
+	}
+
 	if firstOctet < 0x80 {
 		// Raw length
 		l := Length(firstOctet)
@@ -61,6 +74,11 @@ func ReadLength(buffer []byte, offset int) (Length, int, error) {
 }
 
 func (l Length) WriteTo(buffer []byte, offset int) (int, error) {
+	if l < 0 {
+		buffer[offset] = 0x80
+		return offset + 1, nil
+	}
+
 	n := uint64(l)
 	if n < 0x80 {
 		buffer[offset] = byte(n)

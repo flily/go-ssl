@@ -16,6 +16,7 @@ func TestLengthEncoding(t *testing.T) {
 		{201, []byte{0x81, 0xc9}}, // example in X.690 8.1.3.5
 		{257, []byte{0x82, 0x01, 0x01}},
 		{1212, []byte{0x82, 0x04, 0xbc}},
+		{-1, []byte{0x80}},
 	}
 
 	buffer := make([]byte, 10)
