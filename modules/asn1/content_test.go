@@ -127,7 +127,7 @@ func TestIntegerContentEncoding(t *testing.T) {
 	}
 }
 
-func TestBitStringPrimitiveEncoding(t *testing.T) {
+func TestBitStringPrimitiveContentEncoding(t *testing.T) {
 	cases := []struct {
 		data     []byte
 		length   int
@@ -147,7 +147,7 @@ func TestBitStringPrimitiveEncoding(t *testing.T) {
 
 	buffer := make([]byte, 100)
 	for _, c := range cases {
-		bs := NewBitString(c.data, c.length)
+		bs := NewBitStringFromBitArray(c.data, c.length)
 		wNext, err := bs.WriteContentTo(buffer, 0)
 		if err != nil {
 			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
@@ -168,7 +168,7 @@ func TestBitStringPrimitiveEncoding(t *testing.T) {
 			Length: Length(len(c.expected)),
 		}
 
-		bs1 := NewBitString(nil, 0)
+		bs1 := NewBitStringFromBitArray(nil, 0)
 		err = bs1.ReadContentFrom(buffer, 0, info)
 		if err != nil {
 			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
@@ -176,6 +176,66 @@ func TestBitStringPrimitiveEncoding(t *testing.T) {
 
 		if !bytes.Equal(bs1.Data, c.data) {
 			t.Errorf("wrong content parsed: %+v, expected %+v", bs1.Data, bs.Data)
+		}
+	}
+}
+
+func TestBitStringObjectContentEncoding(t *testing.T) {
+	cases := []struct {
+		data     ASN1Object
+		pc       ContentType
+		expected []byte
+	}{
+		{
+			data:     NewIntegerFromInt64(65537),
+			pc:       TagConstructed,
+			expected: []byte{0x02, 0x03, 0x01, 0x00, 0x01},
+		},
+		{
+			data:     NewIntegerFromInt64(65537),
+			pc:       TagPrimitive,
+			expected: []byte{0x00, 0x02, 0x03, 0x01, 0x00, 0x01},
+		},
+	}
+
+	buffer := make([]byte, 100)
+	for _, c := range cases {
+		bs := NewBitStringFromObject(c.data)
+		bs.PC = c.pc
+		wNext, err := bs.WriteContentTo(buffer, 0)
+		if err != nil {
+			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
+		}
+
+		if wNext != len(c.expected) {
+			t.Errorf("wrong next offset %d returned, expected %d, case: %+v",
+				wNext, len(c.expected), c.data)
+		}
+
+		if !bytes.Equal(buffer[:wNext], c.expected) {
+			t.Errorf("wrong encoding result: %x, expected %x, case: %+v",
+				buffer[:wNext], c.expected, c.data)
+		}
+
+		info := &ASN1ObjectInfo{
+			Tag:    bs.Tag(),
+			Length: Length(len(c.expected)),
+		}
+
+		bs1 := &ASN1BitString{}
+		err = bs1.ReadContentFrom(buffer, 0, info)
+		if err != nil {
+			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
+		}
+
+		if c.pc == TagConstructed {
+			if !bs1.Equal(bs) {
+				t.Errorf("wrong content parsed: %+v, expected %+v", bs1, bs)
+			}
+		} else {
+			if !bytes.Equal(bs1.Data, c.expected[1:]) {
+				t.Errorf("wrong content parsed: %+v, expected %+v", bs1.Data, c.expected[1:])
+			}
 		}
 	}
 }

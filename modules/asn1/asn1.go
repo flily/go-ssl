@@ -26,6 +26,7 @@ type ASN1Object interface {
 	ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error
 	String() string
 	PrettyString(indent string) string
+	Equal(other ASN1Object) bool
 }
 
 func WriteASN1Objects(buffer []byte, offset int, objects ...ASN1Object) (int, error) {
@@ -64,7 +65,7 @@ func makeASN1Object(tag *Tag) ASN1Object {
 		o = NewIntegerFromInt64(0)
 
 	case TagBitString:
-		o = NewBitString(nil, 0)
+		o = new(ASN1BitString)
 
 	case TagNull:
 		o = NewNull()

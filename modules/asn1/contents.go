@@ -1,6 +1,7 @@
 package asn1
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"strings"
@@ -74,6 +75,15 @@ func (b *ASN1Boolean) String() string {
 
 func (b *ASN1Boolean) PrettyString(indent string) string {
 	return indent + b.String()
+}
+
+func (b *ASN1Boolean) Equal(other ASN1Object) bool {
+	otherBool, ok := other.(*ASN1Boolean)
+	if !ok {
+		return false
+	}
+
+	return *b == *otherBool
 }
 
 type ASN1Integer struct {
@@ -178,7 +188,7 @@ type ASN1BitString struct {
 	BitLength int
 }
 
-func NewBitString(data []byte, bitLength int) *ASN1BitString {
+func NewBitStringFromBitArray(data []byte, bitLength int) *ASN1BitString {
 	byteLength := (bitLength + 7) / 8
 	if byteLength > len(data) {
 		byteLength = len(data)
@@ -194,6 +204,37 @@ func NewBitString(data []byte, bitLength int) *ASN1BitString {
 	return s
 }
 
+func NewBitStringFromBytes(data []byte) *ASN1BitString {
+	s := &ASN1BitString{
+		Data:      data,
+		BitLength: len(data) * 8,
+		PC:        TagPrimitive,
+	}
+
+	return s
+}
+
+func NewBitStringFromObject(obj ASN1Object) *ASN1BitString {
+	s := &ASN1BitString{
+		Object: obj,
+		PC:     TagConstructed,
+	}
+
+	return s
+}
+
+func NewBitString(data any) *ASN1BitString {
+	if v, ok := data.([]byte); ok {
+		return NewBitStringFromBytes(v)
+	}
+
+	if v, ok := data.(ASN1Object); ok {
+		return NewBitStringFromObject(v)
+	}
+
+	return nil
+}
+
 func (s *ASN1BitString) Tag() *Tag {
 	t := &Tag{
 		Class:  TagClassUniversal,
@@ -205,7 +246,23 @@ func (s *ASN1BitString) Tag() *Tag {
 }
 
 func (s *ASN1BitString) ContentLength() Length {
-	return Length(len(s.Data) + 1)
+	length := Length(0)
+	if s.Object != nil {
+		length += Length(s.Object.Tag().WireLength())
+		objLength := s.Object.ContentLength()
+
+		length += Length(objLength.WireLength())
+		length += objLength
+
+		if s.PC == TagPrimitive {
+			length += 1
+		}
+
+	} else {
+		length = Length(len(s.Data) + 1)
+	}
+
+	return length
 }
 
 func (s *ASN1BitString) WriteContentTo(buffer []byte, offset int) (int, error) {
@@ -220,7 +277,7 @@ func (s *ASN1BitString) WriteContentTo(buffer []byte, offset int) (int, error) {
 			next++
 		}
 
-		wNext, err := s.Object.WriteContentTo(buffer, next)
+		wNext, err := WriteASN1Objects(buffer, next, s.Object)
 		if err != nil {
 			return -1, err
 		}
@@ -268,6 +325,23 @@ func (s *ASN1BitString) PrettyString(indent string) string {
 	} else {
 		return indent + s.String()
 	}
+}
+
+func (s *ASN1BitString) Equal(o ASN1Object) bool {
+	other, ok := o.(*ASN1BitString)
+	if !ok {
+		return false
+	}
+
+	if other.PC != s.PC {
+		return false
+	}
+
+	if s.Object != nil {
+		return s.Object.Equal(other.Object)
+	}
+
+	return bytes.Equal(s.Data, other.Data)
 }
 
 type ASN1OctetString struct {
@@ -392,6 +466,23 @@ func (s *ASN1OctetString) PrettyString(indent string) string {
 	return indent + r
 }
 
+func (s *ASN1OctetString) Equal(o ASN1Object) bool {
+	other, ok := o.(*ASN1OctetString)
+	if !ok {
+		return false
+	}
+
+	if other.PC != s.PC {
+		return false
+	}
+
+	if s.kind == objectInnerKindBytes {
+		return bytes.Equal(s.valueBytes, other.valueBytes)
+	}
+
+	return s.valueObject.Equal(other.valueObject)
+}
+
 type ASN1Null int
 
 func NewNull() *ASN1Null {
@@ -495,6 +586,25 @@ func (s *ASN1Sequence) PrettyString(indent string) string {
 	return strings.Join(buffer, "\n")
 }
 
+func (s *ASN1Sequence) Equal(other ASN1Object) bool {
+	otherSeq, ok := other.(*ASN1Sequence)
+	if !ok {
+		return false
+	}
+
+	if len(*s) != len(*otherSeq) {
+		return false
+	}
+
+	for i, obj := range *s {
+		if !obj.Equal((*otherSeq)[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
 type ASN1GenericData struct {
 	tag  *Tag
 	Data []byte
@@ -544,4 +654,17 @@ func (g *ASN1GenericData) String() string {
 
 func (g *ASN1GenericData) PrettyString(indent string) string {
 	return indent + g.String()
+}
+
+func (g *ASN1GenericData) Equal(other ASN1Object) bool {
+	otherData, ok := other.(*ASN1GenericData)
+	if !ok {
+		return false
+	}
+
+	if g.tag != otherData.tag {
+		return false
+	}
+
+	return bytes.Equal(g.Data, otherData.Data)
 }

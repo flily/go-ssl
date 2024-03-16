@@ -227,3 +227,87 @@ func TestIntegerEncoding(t *testing.T) {
 		}
 	}
 }
+
+func TestBitStringObjectEncoding(t *testing.T) {
+	cases := []struct {
+		data       any
+		pc         ContentType
+		expected   []byte
+		rawContent []byte
+	}{
+		{
+			data: NewIntegerFromInt64(65537),
+			pc:   TagPrimitive,
+			expected: []byte{
+				0x03, 0x06,
+				0x00, 0x02, 0x03, 0x01, 0x00, 0x01,
+			},
+			rawContent: []byte{0x02, 0x03, 0x01, 0x00, 0x01},
+		},
+		{
+			data: NewIntegerFromInt64(65537),
+			pc:   TagConstructed,
+			expected: []byte{
+				0x23, 0x05,
+				0x02, 0x03, 0x01, 0x00, 0x01,
+			},
+		},
+	}
+
+	buffer := make([]byte, 100)
+	for _, c := range cases {
+		bs := NewBitString(c.data)
+		bs.PC = c.pc
+
+		wNext, err := WriteASN1Objects(buffer, 0, bs)
+		if err != nil {
+			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
+		}
+
+		if wNext != len(c.expected) {
+			t.Errorf("wrong next offset %d returned, expected %d, case: %+v",
+				wNext, len(c.expected), c.data)
+		}
+
+		if !bytes.Equal(buffer[:wNext], c.expected) {
+			t.Errorf("wrong encoding result: %x, expected %x, case: %+v",
+				buffer[:wNext], c.expected, c.data)
+		}
+
+		results, rNext, err := ReadASN1Objects(buffer, 0, wNext)
+		if err != nil {
+			t.Errorf("unexpected error '%v' on case: %+v", err, c.data)
+		}
+
+		if rNext != wNext {
+			t.Errorf("wrong next offset %d returned, expected %d, case: %+v",
+				rNext, wNext, c.data)
+		}
+
+		if len(results) != 1 {
+			t.Errorf("wrong number of objects parsed: %d, expected 1", len(results))
+		}
+
+		bs1, typeOk := results[0].(*ASN1BitString)
+		if !typeOk {
+			t.Errorf("wrong type parsed: %T, expected *ASN1BitString", results[0])
+			continue
+		}
+
+		if bs1 == nil {
+			t.Errorf("nil object parsed")
+			continue
+		}
+
+		if c.pc == TagConstructed {
+			if !bs1.Equal(bs) {
+				t.Errorf("wrong content parsed: %+v, expected %+v", bs1, bs)
+			}
+		} else {
+			if !bytes.Equal(bs1.Data, c.rawContent) {
+				t.Errorf("wrong content parsed: %x, expected %x, case: %+v",
+					bs1.Data, c.rawContent, c.data)
+			}
+		}
+	}
+}
