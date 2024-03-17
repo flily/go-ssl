@@ -535,7 +535,7 @@ func NewSequence(objects ...ASN1Object) *ASN1Sequence {
 func (s *ASN1Sequence) Tag() *Tag {
 	t := &Tag{
 		Class:  TagClassUniversal,
-		PC:     TagConstructed, // X.690 8.2.2, sequence value SHALL BE constructed
+		PC:     TagConstructed, // X.690 8.9.1, sequence value SHALL BE constructed
 		Number: TagSequence,
 	}
 
@@ -577,7 +577,7 @@ func (s *ASN1Sequence) PrettyString(indent string) string {
 		indent = "+ "
 	}
 	buffer := make([]string, len(*s)+1)
-	buffer[0] = indent + fmt.Sprintf("Sequence [%d elements]", len(*s))
+	buffer[0] = indent + s.String()
 	for i, obj := range *s {
 		buffer[i+1] = obj.PrettyString("| " + indent)
 	}
@@ -602,6 +602,142 @@ func (s *ASN1Sequence) Equal(other ASN1Object) bool {
 	}
 
 	return true
+}
+
+type ASN1Set []ASN1Object
+
+func NewASN1Set(objects ...ASN1Object) *ASN1Sequence {
+	seq := ASN1Sequence(objects)
+	return &seq
+}
+
+func (s *ASN1Set) Tag() *Tag {
+	t := &Tag{
+		Class:  TagClassUniversal,
+		PC:     TagConstructed, // X.690 8.11.2, sequence value SHALL BE constructed
+		Number: TagSet,
+	}
+
+	return t
+}
+
+func (s *ASN1Set) ContentLength() Length {
+	length := 0
+	for _, obj := range *s {
+		objTag := obj.Tag()
+		objContentLength := obj.ContentLength()
+		objLengthLength := objContentLength.WireLength()
+		length += objTag.WireLength() + objLengthLength + objContentLength.Int()
+	}
+
+	return Length(length)
+}
+
+func (s *ASN1Set) WriteContentTo(buffer []byte, offset int) (int, error) {
+	return WriteASN1Objects(buffer, offset, *s...)
+}
+
+func (s *ASN1Set) ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error {
+	objects, _, err := ReadASN1Objects(buffer, offset, offset+info.Length.Int())
+	if err != nil {
+		return err
+	}
+
+	*s = objects
+	return nil
+}
+
+func (s *ASN1Set) String() string {
+	return fmt.Sprintf("Set [%d elements]", len(*s))
+}
+
+func (s *ASN1Set) PrettyString(indent string) string {
+	if len(indent) <= 0 {
+		indent = "+ "
+	}
+	buffer := make([]string, len(*s)+1)
+	buffer[0] = indent + s.String()
+	for i, obj := range *s {
+		buffer[i+1] = obj.PrettyString("| " + indent)
+	}
+
+	return strings.Join(buffer, "\n")
+}
+
+func (s *ASN1Set) Equal(other ASN1Object) bool {
+	otherSeq, ok := other.(*ASN1Set)
+	if !ok {
+		return false
+	}
+
+	if len(*s) != len(*otherSeq) {
+		return false
+	}
+
+	for i, obj := range *s {
+		if !obj.Equal((*otherSeq)[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+type ASN1PrintableString string
+
+func NewPrintableString(value string) *ASN1PrintableString {
+	s := ASN1PrintableString(value)
+	return &s
+}
+
+func (s *ASN1PrintableString) Tag() *Tag {
+	t := &Tag{
+		Class:  TagClassUniversal,
+		PC:     TagPrimitive, // X.690 8.19.1, printable string value SHALL BE primitive
+		Number: TagPrintableString,
+	}
+
+	return t
+}
+
+func (s *ASN1PrintableString) ContentLength() Length {
+	return Length(len(*s))
+}
+
+func (s *ASN1PrintableString) WriteContentTo(buffer []byte, offset int) (int, error) {
+	if err := checkBufferSize(buffer, offset, len(*s)); err != nil {
+		return -1, err
+	}
+
+	copy(buffer[offset:], *s)
+	return offset + len(*s), nil
+}
+
+func (s *ASN1PrintableString) ReadContentFrom(buffer []byte, offset int, info *ASN1ObjectInfo) error {
+	length := info.Length.Int()
+	if err := checkBufferSize(buffer, offset, length); err != nil {
+		return err
+	}
+
+	*s = ASN1PrintableString(buffer[offset : offset+length])
+	return nil
+}
+
+func (s *ASN1PrintableString) String() string {
+	return fmt.Sprintf("PrintableString[%s]", string(*s))
+}
+
+func (s *ASN1PrintableString) PrettyString(indent string) string {
+	return indent + s.String()
+}
+
+func (s *ASN1PrintableString) Equal(other ASN1Object) bool {
+	otherString, ok := other.(*ASN1PrintableString)
+	if !ok {
+		return false
+	}
+
+	return *s == *otherString
 }
 
 type ASN1GenericData struct {

@@ -79,6 +79,12 @@ func makeASN1Object(tag *Tag) ASN1Object {
 	case TagSequence:
 		o = new(ASN1Sequence)
 
+	case TagSet:
+		o = new(ASN1Set)
+
+	case TagPrintableString:
+		o = new(ASN1PrintableString)
+
 	default:
 		o = new(ASN1GenericData)
 	}
