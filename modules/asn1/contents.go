@@ -320,7 +320,7 @@ func (s *ASN1BitString) String() string {
 }
 
 func (s *ASN1BitString) PrettyString(indent string) string {
-	if s.PC == TagConstructed || s.Object == nil {
+	if s.PC == TagConstructed || s.Object != nil {
 		return s.Object.PrettyString(indent)
 	} else {
 		return indent + s.String()
@@ -573,14 +573,13 @@ func (s *ASN1Sequence) String() string {
 }
 
 func (s *ASN1Sequence) PrettyString(indent string) string {
-	lead := ""
-	if len(*s) > 1 {
-		lead = "+ "
+	if len(indent) <= 0 {
+		indent = "+ "
 	}
-
-	buffer := make([]string, len(*s))
+	buffer := make([]string, len(*s)+1)
+	buffer[0] = indent + fmt.Sprintf("Sequence [%d elements]", len(*s))
 	for i, obj := range *s {
-		buffer[i] = lead + obj.PrettyString(indent+"  ")
+		buffer[i+1] = obj.PrettyString("| " + indent)
 	}
 
 	return strings.Join(buffer, "\n")
