@@ -7,6 +7,7 @@ import (
 	"github.com/flily/go-ssl/app/cipher"
 	"github.com/flily/go-ssl/app/digest"
 	"github.com/flily/go-ssl/app/keygen"
+	"github.com/flily/go-ssl/app/utils/asn1"
 	"github.com/flily/go-ssl/app/utils/format"
 	"github.com/flily/go-ssl/cmd/gossl/commands/version"
 	"github.com/flily/go-ssl/common/clicontext"
@@ -25,6 +26,7 @@ func init() {
 		"genecdsa": keygen.MainGenEC,
 		"ec":       cipher.MainEC,
 		"format":   format.MainFormat,
+		"asn1":     asn1.MainASN1,
 		"help":     showHelp,
 	}
 }
