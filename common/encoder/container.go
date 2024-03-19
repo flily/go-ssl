@@ -1,6 +1,7 @@
 package encoder
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
@@ -22,28 +23,27 @@ const (
 	KeyTypeECPublicKey
 	KeyTypeECParameters
 	KeyTypeCertificate
+	KeyTypeCertificateRequest
 )
 
-func (t KeyType) String() string {
-	switch t {
-	case KeyTypeInvalid:
-		return "INVALID"
-	case KeyTypeRSAPrivateKey:
-		return "RSA PrivateKey"
-	case KeyTypeRSAPublicKey:
-		return "RSA PublicKey"
-	case KeyTypeECPrivateKey:
-		return "EC PrivateKey"
-	case KeyTypeECPublicKey:
-		return "EC PublicKey"
-	case KeyTypeECParameters:
-		return "EC Parameters"
-	case KeyTypeCertificate:
-		return "Certificate"
+var keyTypeNameMap = map[KeyType]string{
+	KeyTypeInvalid:            "INVALID",
+	KeyTypeRSAPrivateKey:      "RSA PrivateKey",
+	KeyTypeRSAPublicKey:       "RSA PublicKey",
+	KeyTypeECPrivateKey:       "EC PrivateKey",
+	KeyTypeECPublicKey:        "EC PublicKey",
+	KeyTypeECParameters:       "EC Parameters",
+	KeyTypeCertificate:        "Certificate",
+	KeyTypeCertificateRequest: "CertificateRequest",
+}
 
-	default:
-		return fmt.Sprintf("KeyType(%d)", int(t))
+func (t KeyType) String() string {
+	name, known := keyTypeNameMap[t]
+	if known {
+		return name
 	}
+
+	return fmt.Sprintf("KeyType(%d)", int(t))
 }
 
 type Container struct {
@@ -57,6 +57,7 @@ type Container struct {
 	ecdPri  *ecdsa.PrivateKey
 	ecdPub  *ecdsa.PublicKey
 	cert    *x509.Certificate
+	request *x509.CertificateRequest
 	binary  []byte
 
 	next *Container
@@ -183,6 +184,7 @@ func (c *Container) parseDERFormat(data []byte) error {
 		{makeKeyParser(x509.ParsePKIXPublicKey), KeyFileFormatPKIXPublicKey},
 		{makeKeyParser(x509.ParseECPrivateKey), KeyFileFormatECPrivateKey},
 		{makeKeyParser(x509.ParseCertificate), KeyFileFormatCertificate},
+		{makeKeyParser(x509.ParseCertificateRequest), KeyFileFormatCertificateRequest},
 	}
 
 	found := false
@@ -225,6 +227,10 @@ func (c *Container) setKeyWithFormat(key any, format KeyFileFormat) error {
 		c.keyType = KeyTypeCertificate
 		c.cert = k
 
+	case *x509.CertificateRequest:
+		c.keyType = KeyTypeCertificateRequest
+		c.request = k
+
 	case []byte:
 		if format != KeyFileFormatECParameters {
 			err := fmt.Errorf("Unknown binary data got: %s",
@@ -255,6 +261,66 @@ func (c *Container) KeyTypeString() string {
 
 func (c *Container) Next() *Container {
 	return c.next
+}
+
+func (c *Container) PrivateKey() crypto.PrivateKey {
+	switch c.keyType {
+	case KeyTypeRSAPrivateKey:
+		return c.rsaPri
+
+	case KeyTypeECPrivateKey:
+		return c.ecdPri
+
+	default:
+		return nil
+	}
+}
+
+func (c *Container) PublicKey() crypto.PublicKey {
+	switch c.keyType {
+	case KeyTypeRSAPrivateKey:
+		return c.rsaPri.Public()
+
+	case KeyTypeRSAPublicKey:
+		return c.rsaPub
+
+	case KeyTypeECPrivateKey:
+		return c.ecdPri.Public()
+
+	case KeyTypeECPublicKey:
+		return c.ecdPub
+
+	default:
+		return nil
+	}
+}
+
+func (c *Container) FirstPrivateKey() crypto.PrivateKey {
+	container := c
+	for container != nil {
+		key := container.PrivateKey()
+		if key != nil {
+			return key
+		}
+
+		container = container.Next()
+	}
+
+	return nil
+}
+
+func (c *Container) FirstPublicKey() crypto.PublicKey {
+	container := c
+	for container != nil {
+		key := container.PublicKey()
+		if key != nil {
+			return key
+		}
+
+		container = container.Next()
+	}
+
+	return nil
 }
 
 func (c *Container) RSAPrivateKey() *rsa.PrivateKey {

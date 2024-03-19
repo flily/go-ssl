@@ -21,37 +21,32 @@ const (
 	KeyFileFormatECPublicKey
 	KeyFileFormatECParameters
 	KeyFileFormatCertificate
+	KeyFileFormatCertificateRequest
 	KeyFileFormatPEM
 )
 
-func (f KeyFileFormat) String() string {
-	switch f {
-	case KeyFileFormatInvalid:
-		return "INVALID"
-	case KeyFileFormatPKCS1RSAPrivateKey:
-		return "RSAPrivateKey[PKCS1]"
-	case KeyFileFormatPKCS1RSAPublicKey:
-		return "RSAPublicKey[PKCS1]"
-	case KeyFileFormatPKCS7Message:
-		return "PKCS7Message"
-	case KeyFileFormatPKCS8PrivateKey:
-		return "PrivateKey[PKCS8]"
-	case KeyFileFormatPKIXPublicKey:
-		return "PublicKey[PKIX]"
-	case KeyFileFormatECPrivateKey:
-		return "ECPrivateKey"
-	case KeyFileFormatECPublicKey:
-		return "ECPublicKey"
-	case KeyFileFormatECParameters:
-		return "ECParameters"
-	case KeyFileFormatCertificate:
-		return "Certificate"
-	case KeyFileFormatPEM:
-		return "PEM"
+var keyFileFormatNameMap = map[KeyFileFormat]string{
+	KeyFileFormatInvalid:            "INVALID",
+	KeyFileFormatPKCS1RSAPrivateKey: "RSAPrivateKey[PKCS1]",
+	KeyFileFormatPKCS1RSAPublicKey:  "RSAPublicKey[PKCS1]",
+	KeyFileFormatPKCS7Message:       "PKCS7Message",
+	KeyFileFormatPKCS8PrivateKey:    "PrivateKey[PKCS8]",
+	KeyFileFormatPKIXPublicKey:      "PublicKey[PKIX]",
+	KeyFileFormatECPrivateKey:       "ECPrivateKey",
+	KeyFileFormatECPublicKey:        "ECPublicKey",
+	KeyFileFormatECParameters:       "ECParameters",
+	KeyFileFormatCertificate:        "Certificate",
+	KeyFileFormatCertificateRequest: "CertificateRequest",
+	KeyFileFormatPEM:                "PEM",
+}
 
-	default:
-		return fmt.Sprintf("KeyFileFormat(%d)", int(f))
+func (f KeyFileFormat) String() string {
+	name, known := keyFileFormatNameMap[f]
+	if known {
+		return name
 	}
+
+	return fmt.Sprintf("KeyFileFormat(%d)", int(f))
 }
 
 func canParseKey[T any](data []byte, loader func([]byte) (T, error)) bool {
@@ -81,6 +76,10 @@ func derDetect(data []byte) KeyFileFormat {
 
 	} else if canParseKey(data, x509.ParseCertificate) {
 		result = KeyFileFormatCertificate
+
+	} else if canParseKey(data, x509.ParseCertificateRequest) {
+		result = KeyFileFormatCertificateRequest
+
 	}
 
 	return result
