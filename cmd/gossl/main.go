@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/flily/go-ssl/app/cert"
 	"github.com/flily/go-ssl/app/cipher"
 	"github.com/flily/go-ssl/app/digest"
 	"github.com/flily/go-ssl/app/keygen"
@@ -27,6 +28,7 @@ func init() {
 		"ec":       cipher.MainEC,
 		"format":   format.MainFormat,
 		"asn1":     asn1.MainASN1,
+		"cert":     cert.MainCert,
 		"help":     showHelp,
 	}
 }
