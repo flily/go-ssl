@@ -32,6 +32,11 @@ func PrintBinary(name string, value []byte) {
 		name, len(value), binaryHex(value, 15, "    "))
 }
 
+func PrintBinaryWithIndent(name string, indent string, value []byte) {
+	fmt.Printf("%s: [%d bytes]\n%s\n",
+		indent+name, len(value), binaryHex(value, 15, indent+"    "))
+}
+
 func PrintBinarys(name string, values ...[]byte) {
 	data := make([]byte, 0)
 	for _, value := range values {

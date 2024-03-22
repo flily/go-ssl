@@ -15,7 +15,7 @@ import (
 func showPublicKey(publicKey any) {
 	if key, ok := publicKey.(*rsa.PublicKey); ok {
 		fmt.Printf("      Public-Key: (%d bit)\n", key.N.BitLen())
-		prettyprint.PrintBinary("      Modulus", key.N.Bytes())
+		prettyprint.PrintBinaryWithIndent("Modulus", "      ", key.N.Bytes())
 		fmt.Printf("      Exponent: %d (0x%x)\n", key.E, key.E)
 	}
 }
@@ -37,7 +37,6 @@ func showCSR(filename string) error {
 	fmt.Printf("    Subject: %s\n", request.Subject.String())
 	fmt.Printf("    Subject Public Key Info:\n")
 	fmt.Printf("      Public Key Algorithm: %s\n", request.PublicKeyAlgorithm)
-	fmt.Printf("      Public Key: %s\n", request.PublicKey)
 	showPublicKey(request.PublicKey)
 
 	fmt.Printf("    Attributes:\n")
@@ -46,7 +45,7 @@ func showCSR(filename string) error {
 	}
 
 	fmt.Printf("  Signature Algorithm: %s\n", request.SignatureAlgorithm)
-	prettyprint.PrintBinary("  Signature", request.Signature)
+	prettyprint.PrintBinaryWithIndent("Signature", "  ", request.Signature)
 	return nil
 }
 
