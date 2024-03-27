@@ -338,3 +338,11 @@ func (c *Container) ECDSAPrivateKey() *ecdsa.PrivateKey {
 func (c *Container) ECDSAPublicKey() *ecdsa.PublicKey {
 	return c.ecdPub
 }
+
+func (c *Container) Certificate() *x509.Certificate {
+	return c.cert
+}
+
+func (c *Container) CertificateRequest() *x509.CertificateRequest {
+	return c.request
+}
