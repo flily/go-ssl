@@ -1,6 +1,7 @@
 package cert
 
 import (
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -17,6 +18,13 @@ func showPublicKey(publicKey any) {
 		fmt.Printf("      Public-Key: (%d bit)\n", key.N.BitLen())
 		prettyprint.PrintBinaryWithIndent("Modulus", "      ", key.N.Bytes())
 		fmt.Printf("      Exponent: %d (0x%x)\n", key.E, key.E)
+	}
+
+	if key, ok := publicKey.(*ecdsa.PublicKey); ok {
+		fmt.Printf("      Public-Key: (%d bit)\n", key.Curve.Params().BitSize)
+		prettyprint.PrintBinariesWithIndent("pub", "      ",
+			[]byte{0x04}, key.X.Bytes(), key.Y.Bytes())
+		fmt.Printf("      ASN1 OID: %s\n", key.Curve.Params().Name)
 	}
 }
 
@@ -82,8 +90,50 @@ func certCommandCSR(ctx *clicontext.CommandContext) error {
 	return nil
 }
 
+func showCert(filename string) error {
+	chain, err := encoder.ParseContainerChainFromFile(filename)
+	if err != nil {
+		return err
+	}
+
+	if chain.KeyType() != encoder.KeyTypeCertificate {
+		return fmt.Errorf("Not a certificate file")
+	}
+
+	cert := chain.Certificate()
+	fmt.Printf("Certificate:\n")
+	fmt.Printf("  Data:\n")
+	fmt.Printf("    Version: %d (0x%x)\n", cert.Version, cert.Version)
+	prettyprint.PrintBinaryWithIndent("Serial Number", "    ", cert.SerialNumber.Bytes())
+	fmt.Printf("    Signature Algorithm: %s\n", cert.SignatureAlgorithm)
+	fmt.Printf("    Issuer: %s\n", cert.Issuer)
+	fmt.Printf("    Validity\n")
+	fmt.Printf("      Not Before: %s\n", cert.NotBefore)
+	fmt.Printf("      Not After: %s\n", cert.NotAfter)
+	fmt.Printf("    Subject: %s\n", cert.Subject)
+	fmt.Printf("    Subject Public Key Info:\n")
+	fmt.Printf("      Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm)
+	showPublicKey(cert.PublicKey)
+
+	return nil
+}
+
+func certCommandShow(ctx *clicontext.CommandContext) error {
+	set := flag.NewFlagSet("cert", flag.ExitOnError)
+	inFile := set.String("in", "", "Input file")
+
+	_ = ctx.Parse(set)
+
+	if len(*inFile) > 0 {
+		return showCert(*inFile)
+	}
+
+	return nil
+}
+
 var certCommands = map[string]clicontext.CommandEntryFunc{
-	"csr": certCommandCSR,
+	"csr":  certCommandCSR,
+	"show": certCommandShow,
 }
 
 func MainCert(ctx *clicontext.CommandContext) error {

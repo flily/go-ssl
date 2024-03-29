@@ -27,6 +27,20 @@ func binaryHex(data []byte, lineBytes int, indent string) string {
 	return strings.Join(lines, "\n")
 }
 
+func binaryConcat(values ...[]byte) []byte {
+	length := 0
+	for _, value := range values {
+		length += len(value)
+	}
+
+	result := make([]byte, 0, length)
+	for _, value := range values {
+		result = append(result, value...)
+	}
+
+	return result
+}
+
 func PrintBinary(name string, value []byte) {
 	fmt.Printf("%s: [%d bytes]\n%s\n",
 		name, len(value), binaryHex(value, 15, "    "))
@@ -37,13 +51,14 @@ func PrintBinaryWithIndent(name string, indent string, value []byte) {
 		indent+name, len(value), binaryHex(value, 15, indent+"    "))
 }
 
-func PrintBinarys(name string, values ...[]byte) {
-	data := make([]byte, 0)
-	for _, value := range values {
-		data = append(data, value...)
-	}
+func PrintBinariesWithIndent(name string, indent string, values ...[]byte) {
+	data := binaryConcat(values...)
+	fmt.Printf("%s: [%d bytes]\n%s\n",
+		indent+name, len(data), binaryHex(data, 15, indent+"    "))
+}
 
-	PrintBinary(name, data)
+func PrintBinaries(name string, values ...[]byte) {
+	PrintBinary(name, binaryConcat(values...))
 }
 
 // PPrintBinary print value make sure it is positive

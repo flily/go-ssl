@@ -13,10 +13,10 @@ import (
 func showECPublicKeyXY(publicKey *ecdsa.PublicKey, showQ bool, showQCompress bool) {
 	if showQ {
 		if showQCompress {
-			prettyprint.PrintBinarys("Q (Public, Compressed)",
+			prettyprint.PrintBinaries("Q (Public, Compressed)",
 				[]byte{0x02}, publicKey.X.Bytes())
 		} else {
-			prettyprint.PrintBinarys("Q (Public, Uncompressed)",
+			prettyprint.PrintBinaries("Q (Public, Uncompressed)",
 				[]byte{0x04}, publicKey.X.Bytes(), publicKey.Y.Bytes())
 		}
 	} else {
