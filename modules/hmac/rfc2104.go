@@ -24,7 +24,7 @@ func xorBytesPadding(data []byte, message []byte, unit byte) []byte {
 	return out
 }
 
-func HMAC[H func() hash.Hash](h H, key []byte, message []byte) []byte {
+func HMAC[H hash.Hash](h func() H, key []byte, message []byte) []byte {
 	h1 := h()
 	_, _ = h1.Write(xorBytesPadding(key, message, HMACInputPaddingUnit))
 	r1 := h1.Sum(nil)
