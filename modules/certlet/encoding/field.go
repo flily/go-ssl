@@ -307,6 +307,14 @@ func (f *Field) Blob() []byte {
 	}
 }
 
+func (f *Field) IsEOF() bool {
+	if f.fieldID == 0 && f.wType == WireTypeFixedLength && f.kind == FixedLengthTypeNull {
+		return true
+	}
+
+	return false
+}
+
 func (f *Field) makeBytes() []byte {
 	return nil
 }
