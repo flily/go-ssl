@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha3"
 	"crypto/sha512"
 	"fmt"
 	"hash"
@@ -36,7 +37,19 @@ const (
 	SHA512
 	SHA512_224
 	SHA512_256
+	SHA3_224
+	SHA3_256
+	SHA3_384
+	SHA3_512
+	SHAKE128
+	SHAKE256
 )
+
+func hashWrap[T hash.Hash](f func() T) func() hash.Hash {
+	return func() hash.Hash {
+		return f()
+	}
+}
 
 var hashInfo = map[HashAlgorithm]HashAlgorithmInfo{
 	MD5: {
@@ -86,6 +99,30 @@ var hashInfo = map[HashAlgorithm]HashAlgorithmInfo{
 		BlockSize: 128,
 		Size:      32,
 		New:       sha512.New512_256,
+	},
+	SHA3_224: {
+		Name:      "SHA3-224",
+		BlockSize: 144,
+		Size:      28,
+		New:       hashWrap(sha3.New224),
+	},
+	SHA3_256: {
+		Name:      "SHA3-256",
+		BlockSize: 136,
+		Size:      32,
+		New:       hashWrap(sha3.New256),
+	},
+	SHA3_384: {
+		Name:      "SHA3-384",
+		BlockSize: 104,
+		Size:      48,
+		New:       hashWrap(sha3.New384),
+	},
+	SHA3_512: {
+		Name:      "SHA3-512",
+		BlockSize: 72,
+		Size:      64,
+		New:       hashWrap(sha3.New512),
 	},
 }
 
