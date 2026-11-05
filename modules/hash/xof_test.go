@@ -50,7 +50,7 @@ func TestXOFAlgorithmInfoValid(t *testing.T) {
 	}
 
 	if SHAKE128.BlockSize() != 168 {
-		t.Errorf("SHAKE128.BlockSize() = %d, want %d", SHAKE128.BlockSize(), 64)
+		t.Errorf("SHAKE128.BlockSize() = %d, want %d", SHAKE128.BlockSize(), 168)
 	}
 
 	if SHAKE128.Size() != 32 {
@@ -59,8 +59,8 @@ func TestXOFAlgorithmInfoValid(t *testing.T) {
 }
 
 func TestXOFAlgorithmInfoInvalid(t *testing.T) {
-	if XOFInvalid.Name() != "XOFInvalid" {
-		t.Errorf("XOFInvalid.Name() = %s, want %s", XOFInvalid.Name(), "XOFInvalid")
+	if XOFInvalid.Name() != "unknown" {
+		t.Errorf("XOFInvalid.Name() = %s, want %s", XOFInvalid.Name(), "unknown")
 	}
 
 	if XOFInvalid.BlockSize() != 0 {
