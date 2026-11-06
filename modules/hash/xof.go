@@ -1,10 +1,9 @@
 package hash
 
 import (
+	"crypto/sha3"
 	"fmt"
 	"hash"
-
-	"golang.org/x/crypto/sha3"
 )
 
 type XOF int
@@ -26,14 +25,19 @@ var xofInfo = map[XOF]AlgorithmInfo[hash.XOF]{
 		Name:      "SHAKE128",
 		BlockSize: 168,
 		Size:      32,
-		New:       xofWrap(sha3.NewShake128),
+		New:       xofWrap(sha3.NewSHAKE128),
 	},
 	SHAKE256: {
 		Name:      "SHAKE256",
 		BlockSize: 136,
 		Size:      64,
-		New:       xofWrap(sha3.NewShake256),
+		New:       xofWrap(sha3.NewSHAKE256),
 	},
+}
+
+func CheckXOFRegistered(x XOF) bool {
+	_, ok := xofInfo[x]
+	return ok
 }
 
 func RegisterXOFAlgorithm(x XOF, info AlgorithmInfo[hash.XOF]) {

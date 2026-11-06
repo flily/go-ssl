@@ -116,6 +116,11 @@ var hashInfo = map[Hash]AlgorithmInfo[hash.Hash]{
 	},
 }
 
+func CheckHashRegistered(h Hash) bool {
+	_, ok := hashInfo[h]
+	return ok
+}
+
 func RegisterHashAlgorithm(h Hash, info AlgorithmInfo[hash.Hash]) {
 	hashInfo[h] = info
 }

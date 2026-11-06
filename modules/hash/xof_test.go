@@ -5,6 +5,7 @@ import (
 
 	"bytes"
 	"crypto/sha3"
+	"hash"
 )
 
 func TestXOFSum(t *testing.T) {
@@ -69,5 +70,35 @@ func TestXOFAlgorithmInfoInvalid(t *testing.T) {
 
 	if XOFInvalid.Size() != 0 {
 		t.Errorf("XOFInvalid.Size() = %d, want %d", XOFInvalid.Size(), 0)
+	}
+}
+
+func TestXOFRegister(t *testing.T) {
+	x := XOFInvalid - 1
+	if CheckXOFRegistered(x) {
+		t.Errorf("XOF %v should not be registered", x)
+	}
+
+	RegisterXOFAlgorithm(x, AlgorithmInfo[hash.XOF]{
+		Name:      "TestXOF",
+		BlockSize: 64,
+		Size:      32,
+		New:       xofWrap(sha3.NewSHAKE128),
+	})
+
+	if !CheckXOFRegistered(x) {
+		t.Errorf("XOF %v should be registered", x)
+	}
+
+	if x.Name() != "TestXOF" {
+		t.Errorf("x.Name() = %s, want %s", x.Name(), "TestXOF")
+	}
+
+	if x.BlockSize() != 64 {
+		t.Errorf("x.BlockSize() = %d, want %d", x.BlockSize(), 64)
+	}
+
+	if x.Size() != 32 {
+		t.Errorf("x.Size() = %d, want %d", x.Size(), 32)
 	}
 }

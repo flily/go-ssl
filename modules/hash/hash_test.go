@@ -1,6 +1,7 @@
 package hash
 
 import (
+	"hash"
 	"testing"
 
 	"bytes"
@@ -63,5 +64,35 @@ func TestHashAlgorithmInfoInvalid(t *testing.T) {
 
 	if HashInvalid.Size() != 0 {
 		t.Errorf("HashInvalid.Size() = %d, want %d", HashInvalid.Size(), 0)
+	}
+}
+
+func TestHashRegister(t *testing.T) {
+	h := HashInvalid - 1
+	if CheckHashRegistered(h) {
+		t.Errorf("Hash %v should not be registered", h)
+	}
+
+	RegisterHashAlgorithm(h, AlgorithmInfo[hash.Hash]{
+		Name:      "TestHash",
+		BlockSize: 64,
+		Size:      32,
+		New:       hashWrap(sha1.New),
+	})
+
+	if !CheckHashRegistered(h) {
+		t.Errorf("Hash %v should be registered", h)
+	}
+
+	if h.Name() != "TestHash" {
+		t.Errorf("h.Name() = %s, want %s", h.Name(), "TestHash")
+	}
+
+	if h.BlockSize() != 64 {
+		t.Errorf("h.BlockSize() = %d, want %d", h.BlockSize(), 64)
+	}
+
+	if h.Size() != 32 {
+		t.Errorf("h.Size() = %d, want %d", h.Size(), 32)
 	}
 }
