@@ -8,6 +8,8 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"hash"
+
+	"golang.org/x/crypto/md4" // nolint:staticcheck
 )
 
 type AlgorithmInfo[T any] struct {
@@ -21,6 +23,7 @@ type Hash int
 
 const (
 	HashInvalid Hash = iota
+	MD4
 	MD5
 	SHA1
 	SHA224
@@ -42,6 +45,12 @@ func hashWrap[T hash.Hash](f func() T) func() hash.Hash {
 }
 
 var hashInfo = map[Hash]AlgorithmInfo[hash.Hash]{
+	MD4: {
+		Name:      "MD4",
+		BlockSize: 64,
+		Size:      16,
+		New:       hashWrap(md4.New),
+	},
 	MD5: {
 		Name:      "MD5",
 		BlockSize: 64,
