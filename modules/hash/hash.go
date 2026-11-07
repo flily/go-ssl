@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"hash"
 
-	"golang.org/x/crypto/md4" // nolint:staticcheck
+	"golang.org/x/crypto/md4" //nolint:staticcheck
+
+	"github.com/flily/go-ssl/modules/hash/md2" //nolint:staticcheck
 )
 
 type AlgorithmInfo[T any] struct {
@@ -23,6 +25,7 @@ type Hash int
 
 const (
 	HashInvalid Hash = iota
+	MD2
 	MD4
 	MD5
 	SHA1
@@ -45,6 +48,12 @@ func hashWrap[T hash.Hash](f func() T) func() hash.Hash {
 }
 
 var hashInfo = map[Hash]AlgorithmInfo[hash.Hash]{
+	MD2: {
+		Name:      "MD2",
+		BlockSize: 16,
+		Size:      16,
+		New:       hashWrap(md2.NewMD2State),
+	},
 	MD4: {
 		Name:      "MD4",
 		BlockSize: 64,
